@@ -12,12 +12,10 @@
 
 ## 介绍视频
 
-Config Forge 演示视频（可直接在页面播放）：
+> GitHub 不支持在 README 内直接播放视频（会剥离播放器标签）。视频为 31MB MP4，点击下方链接观看/下载。
 
-![](docs/config-forge.mp4)
-
-- 备用直链：[config-forge.mp4（Releases 资产）](https://github.com/hoodlumml/config-forge/releases/download/v1.0.0/config-forge.mp4)
-- 视频文件位于仓库 `docs/` 目录。
+- [点击观看 config-forge.mp4（Releases 资产）](https://github.com/hoodlumml/config-forge/releases/download/v1.0.0/config-forge.mp4)
+- 视频文件同时存放于仓库 `docs/config-forge.mp4`。
 
 ## 快速开始
 
