@@ -17,7 +17,7 @@
 1. 从 [Releases](../../releases) 下载**带 `runtime/` 的完整压缩包**，解压到任意目录
    （必须连 `runtime/` 一起，只拿 `orchestrator/` 会跑不起来）。
 2. 进入 `orchestrator/`，双击 `start.bat`。
-3. 约 3 秒后浏览器自动打开 http://localhost:8000
+3. 约 3 秒后浏览器自动打开 http://localhost:18000
    （没自动开就手动打开；改端口：`start.bat 9000`）。
 4. 在网页里用自然语言描述需求，或手动选模板填参数；生成的 Excel 落在
    `engine_runtime/output/`。
