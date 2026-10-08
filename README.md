@@ -14,10 +14,10 @@
 
 Config Forge 演示视频（可直接在页面播放）：
 
-![](https://github.com/hoodlumml/config-forge/releases/download/v1.0.0/config-forge.mp4)
+![](docs/config-forge.mp4)
 
-- 备用直链：[config-forge.mp4](https://github.com/hoodlumml/config-forge/releases/download/v1.0.0/config-forge.mp4)
-- 也可在 [Releases](../../releases) 页面内嵌播放。
+- 备用直链：[config-forge.mp4（Releases 资产）](https://github.com/hoodlumml/config-forge/releases/download/v1.0.0/config-forge.mp4)
+- 视频文件位于仓库 `docs/` 目录。
 
 ## 快速开始
 
