@@ -1,4 +1,6 @@
 @echo off
+REM 切换控制台到 UTF-8 代码页，避免中文乱码（本文件为 UTF-8 无 BOM 编码）
+chcp 65001 >nul
 cd /d "%~dp0"
 setlocal
 
