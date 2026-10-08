@@ -36,13 +36,13 @@ export OPENAI_API_KEY=sk-xxxx
 
 # 3) 启动
 python app.py
-# 浏览器打开 http://localhost:8000
+# 浏览器打开 http://localhost:18000
 ```
 
 ### 方式二：Docker（零环境依赖）
 ```bash
 docker build -t llm-orchestrator .
-docker run -p 8000:8000 -e OPENAI_API_KEY=sk-xxxx llm-orchestrator
+docker run -p 18000:18000 -e OPENAI_API_KEY=sk-xxxx llm-orchestrator
 ```
 > 注意：容器内访问宿主机 dsh 需把 `local_dsh.base_url` 改为宿主机网关地址（如 `http://host.docker.internal:8080`），不能写 `localhost`。
 

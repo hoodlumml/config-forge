@@ -1,7 +1,7 @@
 """跨平台本地 Web 服务（仅标准库，任意 OS 的 Python 3 直接跑）。
 
 启动：  python app.py
-演示：  浏览器打开 http://localhost:8000
+演示：  浏览器打开 http://localhost:18000
 
 本服务集成两层：
 1. LLM 调度层（llm.py）：自动/手动模式，手动模式强制只调本地模型（dsh）。
