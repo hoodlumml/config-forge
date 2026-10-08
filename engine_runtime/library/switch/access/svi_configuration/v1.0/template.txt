@@ -1,0 +1,18 @@
+interface Vlan1
+description *DO NOT USE*
+no ip address
+shutdown
+interface Vlan888
+description Switch_Management_VLAN
+ip address {{vlan 888 ip address}}
+no ip redirects
+no ip proxy-arp
+no shutdown
+ ip default-gateway {{ip default gateway ip address}}
+interface {{VlanXXX}}
+description Switch_Management_VLAN
+ip address {{vlanXXX ip address}}
+no ip redirects
+no ip proxy-arp
+no shutdown
+ ip default-gateway {{ip default gateway ip address}}

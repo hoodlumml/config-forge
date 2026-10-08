@@ -1,0 +1,18 @@
+vlan 10
+ name Wired_Users
+vlan 20
+name AP_Management
+vlan 100
+name Voice_VLAN
+vlan 400
+name Unused_Port_Pool
+!
+vlan 995
+name Native_VLAN
+!
+vlan 888
+name Switch_Management_VLAN
+! @repeat Custom VLAN (add one by one)
+vlan {{vlan_id}}
+name {{vlan_name}}
+! @end

@@ -1,0 +1,32 @@
+interface {{Portchannel name}}
+description {{port channel X description}}
+switchport
+switchport trunk native vlan 995
+switchport trunk allowed vlan {{allowed trunk vlan list}}
+switchport mode trunk
+switchport nonegotiate
+storm-control broadcast level 20.00
+storm-control multicast level 20.00
+storm-control action trap
+logging event link-status
+logging event trunk-status
+logging event bundle-status
+spanning-tree guard loop
+no shutdown
+! @repeat Uplink member ports (per stack member)
+interface {{Member X interface Ten start number}} - {{Member X interface Ten end number}}
+switchport
+switchport trunk native vlan 995
+switchport trunk allowed vlan {{allowed trunk vlan list}}
+switchport mode trunk
+switchport nonegotiate
+logging event link-status
+logging event trunk-status
+logging event bundle-status
+storm-control broadcast level 20.00
+storm-control multicast level 20.00
+storm-control action trap
+spanning-tree guard loop
+channel-group {{port channel number}} mode {{port channel mode}}
+no shutdown
+! @end

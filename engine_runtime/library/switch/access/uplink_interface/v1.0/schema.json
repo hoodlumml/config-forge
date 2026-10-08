@@ -1,0 +1,8 @@
+{
+  "name": "uplink_interface",
+  "label": "Uplink Interface",
+  "section": "Uplink Interface",
+  "type": "normal",
+  "stack_related": false,
+  "images": {}
+}

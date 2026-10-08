@@ -1,0 +1,8 @@
+{
+  "name": "vlan_configuration",
+  "label": "VLAN Configuration",
+  "section": "VLAN Configuration",
+  "type": "normal",
+  "stack_related": false,
+  "images": {}
+}

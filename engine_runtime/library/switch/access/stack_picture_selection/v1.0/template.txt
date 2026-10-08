@@ -1,0 +1,6 @@
+Stack member =={{stack member}}
+if {{stack member}}==2
+if {{stack member}}==3
+if {{stack member}}==4
+if {{stack member}}==5
+Commands ## Comments

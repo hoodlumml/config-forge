@@ -1,0 +1,24 @@
+# ---- 便携 Python 运行时（约 64MB）----
+# 不进 git 仓库；发布时通过 GitHub Releases 把「带 runtime/ 的完整包」作为下载资产附上，
+# 用户下载 zip 后仍可双击即用。
+runtime/
+
+# ---- 生成的配置 Excel 输出（每次运行产生，不入库）----
+engine_runtime/output/
+
+# ---- 本机配置（含 API Key，网页保存时自动重建，绝不提交）----
+orchestrator/config.local.json
+
+# ---- 工具 / agent 工作区（含本地记忆日志，不公开）----
+.workbuddy/
+
+# ---- Python 缓存 ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ---- 系统 / 编辑器 ----
+.DS_Store
+Thumbs.db
+*.log

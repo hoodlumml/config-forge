@@ -1,0 +1,8 @@
+{
+  "name": "upgrade_configuration",
+  "label": "Upgrade configuration",
+  "section": "Upgrade configuration",
+  "type": "normal",
+  "stack_related": false,
+  "images": {}
+}

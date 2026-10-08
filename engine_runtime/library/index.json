@@ -1,0 +1,121 @@
+{
+  "templates": [
+    {
+      "category": "switch/access",
+      "name": "upgrade_configuration",
+      "label": "Upgrade configuration",
+      "active": "v1.0",
+      "versions": [
+        {
+          "version": "v1.0",
+          "date": "2026-08-13",
+          "hash": "2f5fcc2e55e9"
+        }
+      ]
+    },
+    {
+      "category": "switch/access",
+      "name": "stack_configuration",
+      "label": "Stack configuration",
+      "active": "v1.0",
+      "versions": [
+        {
+          "version": "v1.0",
+          "date": "2026-08-13",
+          "hash": "16ae9d2cc5dc"
+        }
+      ]
+    },
+    {
+      "category": "switch/access",
+      "name": "stack_picture_selection",
+      "label": "Stack Picture selection",
+      "active": "v1.0",
+      "versions": [
+        {
+          "version": "v1.0",
+          "date": "2026-08-13",
+          "hash": "d308dee68dea"
+        }
+      ]
+    },
+    {
+      "category": "switch/access",
+      "name": "basic_configuration",
+      "label": "Basic Configuration",
+      "active": "v1.0",
+      "versions": [
+        {
+          "version": "v1.0",
+          "date": "2026-08-13",
+          "hash": "983caf3b5712"
+        }
+      ]
+    },
+    {
+      "category": "switch/access",
+      "name": "vlan_configuration",
+      "label": "VLAN Configuration",
+      "active": "v1.0",
+      "versions": [
+        {
+          "version": "v1.0",
+          "date": "2026-08-13",
+          "hash": "ee92505ab66a"
+        }
+      ]
+    },
+    {
+      "category": "switch/access",
+      "name": "uplink_interface",
+      "label": "Uplink Interface",
+      "active": "v1.0",
+      "versions": [
+        {
+          "version": "v1.0",
+          "date": "2026-08-13",
+          "hash": "e896ca50dcdf"
+        }
+      ]
+    },
+    {
+      "category": "switch/access",
+      "name": "wired_client_access_interface",
+      "label": "WIRED CLIENT ACCESS INTERFACE",
+      "active": "v1.0",
+      "versions": [
+        {
+          "version": "v1.0",
+          "date": "2026-08-13",
+          "hash": "6d64fe6e96a0"
+        }
+      ]
+    },
+    {
+      "category": "switch/access",
+      "name": "ap_management_port",
+      "label": "AP MANAGEMENT PORT",
+      "active": "v1.0",
+      "versions": [
+        {
+          "version": "v1.0",
+          "date": "2026-08-13",
+          "hash": "2724e833b775"
+        }
+      ]
+    },
+    {
+      "category": "switch/access",
+      "name": "svi_configuration",
+      "label": "SVI configuration",
+      "active": "v1.0",
+      "versions": [
+        {
+          "version": "v1.0",
+          "date": "2026-08-13",
+          "hash": "faa084254a34"
+        }
+      ]
+    }
+  ]
+}

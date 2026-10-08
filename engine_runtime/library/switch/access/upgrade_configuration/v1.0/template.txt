@@ -1,0 +1,30 @@
+Upgrading method
+Preparation ## Comments
+USB driver in FAT 32，at least 16GB
+IOS:{{IOS name checked from PG DTL}} ## Need to double check the DTL before cut over
+Commands ## Comments
+!Checking the switch mode
+show version | in INSTALL
+!Change the mode from bundle to install if needed
+dir flash:
+software expand running to flash:
+dir flash:
+configure terminal
+boot system switch all flash:packages.conf
+end
+write memory
+reload
+show version | in INSTALL
+!Upgrade in install mode
+dir usbflash0:
+copy usbflash0:{{IOS name checked from PG DTL}} flash:
+dir flash:*.bin
+install add file flash:{{IOS name checked from PG DTL}} activate commit
+dir flash:
+dir flash:*.conf
+write memory
+reload
+!MD5 verify
+verify /md5 flash:/{{IOS name checked from PG DTL}}
+!Checking configuration register 0x102
+show version

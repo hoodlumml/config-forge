@@ -1,0 +1,15 @@
+! @repeat AP management ports (per stack member)
+default int range {{Member x interface type & start number}} - {{Member x interface end number}}
+interface range {{Member x interface type & start number}} - {{Member x interface end number}}
+ description AP_Management
+ switchport access vlan 20
+ switchport mode access
+switchport nonegotiate
+ no logging event link-status
+ no snmp trap link-status
+ storm-control broadcast level 20.00
+ storm-control multicast level 20.00
+ storm-control action trap
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+! @end

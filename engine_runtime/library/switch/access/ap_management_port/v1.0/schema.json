@@ -1,0 +1,8 @@
+{
+  "name": "ap_management_port",
+  "label": "AP MANAGEMENT PORT",
+  "section": "AP MANAGEMENT PORT",
+  "type": "normal",
+  "stack_related": false,
+  "images": {}
+}

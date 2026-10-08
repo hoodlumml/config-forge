@@ -1,0 +1,8 @@
+{
+  "name": "svi_configuration",
+  "label": "SVI configuration",
+  "section": "SVI configuration",
+  "type": "normal",
+  "stack_related": false,
+  "images": {}
+}

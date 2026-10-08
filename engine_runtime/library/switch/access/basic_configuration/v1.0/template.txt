@@ -1,0 +1,145 @@
+no service pad
+service tcp-keepalives-in
+service tcp-keepalives-out
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+service linenumber
+service sequence-numbers
+service compress-config
+no service dhcp
+no platform punt-keepalive disable-kernel-core
+vrf definition Mgmt-vrf
+!
+address-family ipv4
+exit-address-family
+!
+address-family ipv6
+exit-address-family
+!
+hostname {{hostname}}
+!
+enable secret {{enable-secret}} ## Password
+username admin privilege 15 secret {{admin-password}} ## Password
+!
+redundancy
+mode sso
+software auto-upgrade enable
+clock timezone UTC -0
+boot system switch all flash:packages.conf
+stack-mac persistent timer 0
+!
+no ip routing
+!
+ip name-server {{DNS-server-primary}} {{DNS-server-secondary}} ## Pri: 114.114.114.114 | Sec: 8.8.8.8 
+no ip source-route
+ip domain name {{Regional domain name}} ## example.com
+no ip dhcp conflict logging
+!
+vtp mode off
+udld enable
+interface Vlan888
+ ip address {{vlan888 interface ip and mask}}
+spanning-tree mode rapid-pvst
+spanning-tree portfast bpduguard default
+spanning-tree extend system-id
+archive
+log config
+logging enable
+logging size 50
+notify syslog contenttype plaintext
+path flash:bkp_config
+maximum 3
+!
+errdisable recovery cause udld
+errdisable recovery cause bpduguard
+errdisable recovery cause security-violation
+errdisable recovery cause channel-misconfig
+errdisable recovery cause pagp-flap
+errdisable recovery cause dtp-flap
+errdisable recovery cause link-flap
+errdisable recovery cause sfp-config-mismatch
+errdisable recovery cause gbic-invalid
+errdisable recovery cause l2ptguard
+errdisable recovery cause psecure-violation
+errdisable recovery cause port-mode-failure
+errdisable recovery cause dhcp-rate-limit
+errdisable recovery cause mac-limit
+errdisable recovery cause vmps
+errdisable recovery cause storm-control
+errdisable recovery cause inline-power
+errdisable recovery cause arp-inspection
+errdisable recovery cause loopback
+errdisable recovery interval 600
+lldp timer 10
+lldp run
+cdp run
+!
+ip ssh time-out 60
+ip ssh version 2
+no ip http server
+no ip http secure-server
+ip domain lookup source-interface vlan888
+ip telnet source-interface vlan888
+ip ftp source-interface vlan888
+ip tftp source-interface vlan888
+logging source-interface vlan888
+snmp-server trap-source vlan888
+ip ssh source-interface vlan888
+ntp source vlan 888
+!!!!!Logging Configuration
+logging origin-id hostname
+logging facility local7
+logging monitor notifications
+logging console notifications
+logging history notifications
+logging buffered 32768 debugging
+logging snmp-authfail
+logging trap notifications
+logging host {{logging server ip}} transport udp port {{logging server port}}
+logging host {{logging server ip}}
+ip forward-protocol nd
+ip tcp synwait-time 10
+no ip http server
+ip http authentication local
+no ip http secure-server
+no ip ftp passive
+ip http client source-interface vlan888
+line con 0
+logging synchronous
+password {{console password}} ## Password
+line vty 0 15
+logging synchronous
+password {{vty password}} ## Password
+transport input ssh
+ authorization exec AAA
+ login authentication AAA
+!
+banner login ^
+*******************************************************************************
+*          This system is a private computer/communication facility           *
+*                     Access is for authorized users only!                    *
+* Individuals using this computer system without authority, or in excess of   *
+* their authority, are subject to having all of their activities on this      *
+* system monitored and recorded by system personnel.  In the course of        *
+* monitoring individuals for improperly using this system the activities of   *
+* authorized users may also be monitored. Anyone using this system expressly  *
+* consents to such monitoring and is advised that such monitoring reveals     *
+* possible evidence of criminal or malicious activity, system personnel may   *
+* provide the evidence to law enforcement officials for criminal and/or civil *
+* proceedings                                                                 *
+*******************************************************************************
+^
+banner motd ^
+****************************************************************************
+*                This is a <Company> managed device                        *
+*                                                                          *
+* Changes to the device configuration should be authorized through the     *
+* processes outlined by the <Department> Network Services team.            *
+* Please contact <Company> NOC at <it-contact-url>/call your local call    *
+* center if you are unclear of how to proceed.                             *
+****************************************************************************
+^
+^
+ntp server {{Sec NTP server IP}}
+ntp server {{Pri NTP server IP}} prefer

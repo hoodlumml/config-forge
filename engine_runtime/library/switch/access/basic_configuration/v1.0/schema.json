@@ -1,0 +1,8 @@
+{
+  "name": "basic_configuration",
+  "label": "Basic Configuration",
+  "section": "Basic Configuration",
+  "type": "normal",
+  "stack_related": false,
+  "images": {}
+}

@@ -1,0 +1,49 @@
+{
+  "providers": {
+    "cloud_openai": {
+      "kind": "cloud",
+      "base_url": "https://api.deepseek.com",
+      "api_key": "${OPENAI_API_KEY}",
+      "model": "deepseek-chat"
+    },
+    "local_dsh": {
+      "kind": "local",
+      "base_url": "http://localhost:8080",
+      "api_key": "",
+      "model": "deepseek-chat"
+    },
+    "local_ollama": {
+      "kind": "local",
+      "base_url": "http://localhost:11434",
+      "api_key": "",
+      "model": "qwen2.5:14b"
+    }
+  },
+  "auto_rules": [
+    {
+      "name": "sensitive_to_local",
+      "type": "keyword",
+      "keywords": [
+        "拓扑",
+        "IP",
+        "BOM",
+        "密码",
+        "密钥",
+        "secret",
+        "192.168",
+        "10.",
+        "172."
+      ],
+      "provider": "local_dsh"
+    },
+    {
+      "name": "default_cloud",
+      "type": "always",
+      "provider": "cloud_openai"
+    }
+  ],
+  "fallback_to_local": true,
+  "clients": [
+    "Customer1"
+  ]
+}

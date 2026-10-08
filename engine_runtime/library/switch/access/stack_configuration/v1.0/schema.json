@@ -1,0 +1,8 @@
+{
+  "name": "stack_configuration",
+  "label": "Stack configuration",
+  "section": "Stack configuration",
+  "type": "stack_config",
+  "stack_related": true,
+  "images": {}
+}

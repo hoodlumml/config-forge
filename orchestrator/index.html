@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM 编排 + CONFIG FORGE</title>
+<script>
+/* 提前定主题，避免刷新时先闪一下默认配色（早于 <style> 生效，无样式闪白） */
+(function () {
+  try {
+    var t = localStorage.getItem("cf_theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) { /* 隐私模式忽略 */ }
+})();
+</script>
+<style>
+/* ============================================================
+   CONFIG FORGE · Web Console
+   视觉 v11「霓虹暗色」+ 一套「白天工作区」
+   两套配色只换 semantic token：:root[data-theme=dark|light]
+   dark 套 token 对账 CG theme.qss / config-forge-design-spec-v11 §2
+   ============================================================ */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#05070f; --bg2:#0a0f1e; --panel:rgba(18,24,42,.55); --card:#0d1426;
+    --card-top:rgba(18,24,42,.93); --card-bot:rgba(10,15,30,.93);
+    --line:rgba(94,234,212,.22); --line-strong:rgba(94,234,212,.55);
+    --pri:#2dd4bf; --pri2:#818cf8; --pri3:#f0abfc;
+    --txt:#e6edf6; --mut:#7c89a8; --good:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --on-pri:#04121a;
+    --grad-neon:linear-gradient(135deg,#2dd4bf,#818cf8);
+    --grad-title:linear-gradient(90deg,#2dd4bf,#818cf8);
+    --grad-soft:linear-gradient(135deg,rgba(45,212,191,.22),rgba(129,140,248,.22));
+    --glow1:rgba(45,212,191,.13); --glow2:rgba(129,140,248,.12); --glow3:rgba(45,212,191,.05);
+    --grid:rgba(94,234,212,.035); --thumb:rgba(94,234,212,.30); --out-txt:#cfd8ea;
+    --inset:inset 0 0 22px rgba(45,212,191,.05);
+    --shadow:0 10px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(94,234,212,.05);
+    --shadow-soft:0 6px 22px rgba(0,0,0,.35);
+    --shadow-modal:0 26px 70px rgba(0,0,0,.6), 0 0 42px rgba(45,212,191,.10);
+    --modal-bg:rgba(5,7,15,.72);
+    --sep-bg:#0a0f1e; --sel-bg:#2dd4bf; --sel-fg:#04121a; --ph:#6b7899;
+    --hint-edge:rgba(94,234,212,.42); --chip-edge:rgba(94,234,212,.35);
+    --focus-ring:0 0 0 3px rgba(45,212,191,.14); --hover:rgba(45,212,191,.07);
+    --del-bg:rgba(248,113,113,.10); --del-edge:rgba(248,113,113,.45); --del-fg:#f87171;
+    --good-bg:rgba(52,211,153,.15); --good-edge:rgba(52,211,153,.45); --good-fg:#34d399;
+    --cloud-bg:rgba(129,140,248,.15); --cloud-edge:rgba(129,140,248,.45); --cloud-fg:#818cf8;
+    --ok-fg:#34d399; --warn-fg:#fbbf24; --danger-fg:#f87171; --info-fg:#818cf8;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg:#f2f5fa; --bg2:#ffffff; --panel:rgba(255,255,255,.80); --card:#ffffff;
+    --card-top:#ffffff; --card-bot:#f8fafd;
+    --line:rgba(15,23,42,.10); --line-strong:rgba(15,23,42,.24);
+    --pri:#0d9488; --pri2:#6366f1; --pri3:#c026d3;
+    --txt:#0f172a; --mut:#64748b; --good:#059669; --warn:#d97706; --danger:#dc2626;
+    --on-pri:#ffffff;
+    --grad-neon:linear-gradient(135deg,#14b8a6,#6366f1);
+    --grad-title:linear-gradient(90deg,#0d9488,#6366f1);
+    --grad-soft:linear-gradient(135deg,rgba(13,148,136,.16),rgba(99,102,241,.16));
+    --glow1:rgba(13,148,136,.10); --glow2:rgba(99,102,241,.10); --glow3:rgba(13,148,136,.05);
+    --grid:rgba(15,23,42,.028); --thumb:rgba(15,23,42,.20); --out-txt:#334155;
+    --inset:inset 0 0 22px rgba(13,148,136,.05);
+    --shadow:0 10px 30px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.9);
+    --shadow-soft:0 6px 20px rgba(15,23,42,.08);
+    --shadow-modal:0 26px 70px rgba(15,23,42,.22);
+    --modal-bg:rgba(226,232,240,.66);
+    --sep-bg:#f2f5fa; --sel-bg:#0d9488; --sel-fg:#ffffff; --ph:#94a3b8;
+    --hint-edge:rgba(13,148,136,.38); --chip-edge:rgba(13,148,136,.30);
+    --focus-ring:0 0 0 3px rgba(13,148,136,.16); --hover:rgba(15,23,42,.04);
+    --del-bg:rgba(220,38,38,.07); --del-edge:rgba(220,38,38,.35); --del-fg:#dc2626;
+    --good-bg:rgba(5,150,105,.12); --good-edge:rgba(5,150,105,.35); --good-fg:#059669;
+    --cloud-bg:rgba(99,102,241,.12); --cloud-edge:rgba(99,102,241,.35); --cloud-fg:#6366f1;
+    --ok-fg:#059669; --warn-fg:#d97706; --danger-fg:#dc2626; --info-fg:#6366f1;
+  }
+  :root { --mono:ui-monospace,"JetBrains Mono","SFMono-Regular",Consolas,monospace;
+          --sans:-apple-system,"Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif; }
+
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; font-family:var(--sans); background:var(--bg); color:var(--txt);
+    min-height:100vh; -webkit-font-smoothing:antialiased; transition:background-color .25s, color .25s; }
+  .aurora { position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:radial-gradient(760px 420px at 12% -8%, var(--glow1), transparent 62%),
+               radial-gradient(680px 460px at 88% 0%, var(--glow2), transparent 60%),
+               radial-gradient(900px 500px at 50% 110%, var(--glow3), transparent 60%); }
+  .aurora::after { content:""; position:absolute; inset:0;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:64px 64px; -webkit-mask-image:linear-gradient(180deg,#000 0%,transparent 72%);
+    mask-image:linear-gradient(180deg,#000 0%,transparent 72%); }
+
+  ::selection { background:var(--sel-bg); color:var(--sel-fg); }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-track { background:var(--bg2); }
+  ::-webkit-scrollbar-thumb { background:var(--thumb); border-radius:6px; border:2px solid var(--bg2); }
+  ::-webkit-scrollbar-thumb:hover { background:var(--line-strong); }
+
+  /* ================= 顶栏 ================= */
+  .appbar { position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:22px;
+    padding:12px 26px; background:var(--bg); opacity:.96; backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line); transition:background-color .25s, border-color .25s; }
+  .brand { display:flex; align-items:center; gap:12px; min-width:0; }
+  .brand .mark { width:36px; height:36px; border-radius:11px; display:grid; place-items:center;
+    font-size:19px; color:var(--on-pri); background:var(--grad-neon); transition:background .25s; }
+  .brand h1 { margin:0; font-size:15px; font-weight:700; letter-spacing:.6px; white-space:nowrap;
+    background:var(--grad-title); -webkit-background-clip:text; background-clip:text; color:transparent;
+    transition:background .25s; }
+  .brand p { margin:2px 0 0; font-size:10px; letter-spacing:1.4px; color:var(--mut); text-transform:uppercase; }
+  .steps { display:flex; gap:6px; margin-left:auto; }
+  .step { display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px;
+    border:1px solid var(--line); color:var(--mut); text-decoration:none; font-size:12.5px;
+    transition:.16s, background-color .25s; }
+  .step i { font-style:normal; font-family:var(--mono); font-size:10px; letter-spacing:.6px; opacity:.75; }
+  .step:hover { color:var(--txt); border-color:var(--line-strong); background:var(--hover); }
+  .appbar-act { display:flex; gap:9px; align-items:center; }
+  .chipstat { display:inline-flex; align-items:center; gap:7px; font-size:11px; color:var(--mut);
+    border:1px solid var(--line); border-radius:999px; padding:6px 12px; background:var(--panel); font-family:var(--mono); }
+  .chipstat b { color:var(--txt); }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 10px var(--good);
+    animation:br 2.4s ease-in-out infinite; }
+  @keyframes br { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+  /* ---- 风格切换（夜 / 日）---- */
+  .theme-switch { display:inline-flex; gap:3px; background:var(--bg2); border:1px solid var(--line);
+    border-radius:999px; padding:3px; margin-right:2px; }
+  .ts-opt { border:0; background:transparent; color:var(--mut); font-size:12px; padding:5px 13px;
+    border-radius:999px; cursor:pointer; font-weight:600; letter-spacing:.3px; transition:.18s; }
+  .ts-opt:hover:not(.active) { color:var(--txt); background:var(--hover); box-shadow:none; filter:none; }
+  .ts-opt.active { background:var(--grad-neon); color:var(--on-pri); box-shadow:none; filter:none; }
+
+  /* ================= 主容器 ================= */
+  .wrap { max-width:1180px; margin:0 auto; padding:26px 20px 56px; }
+
+  /* ---- Hero ---- */
+  .hero { display:grid; grid-template-columns:1.1fr .9fr; gap:22px; align-items:center; margin-bottom:24px; }
+  .eyebrow { font-family:var(--mono); font-size:10.5px; letter-spacing:2.4px; text-transform:uppercase; color:var(--pri); }
+  .hero h2 { font-size:25px; margin:11px 0 9px; font-weight:700; letter-spacing:.4px;
+    background:var(--grad-title); -webkit-background-clip:text; background-clip:text; color:transparent;
+    transition:background .25s; }
+  .hero p { margin:0; color:var(--mut); font-size:13px; line-height:1.8; }
+  .tiles { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .tile { position:relative; overflow:hidden; border:1px solid var(--line); border-radius:14px; padding:14px 15px;
+    background:linear-gradient(180deg,var(--card-top),var(--card-bot)); box-shadow:var(--shadow-soft); transition:.25s; }
+  .tile::before { content:""; position:absolute; left:14px; right:14px; top:0; height:1px;
+    background:linear-gradient(90deg,transparent,var(--pri),transparent); opacity:.7; }
+  .tile .k { display:block; font-size:11px; color:var(--mut); margin-bottom:7px; }
+  .tile b.v { font-family:var(--mono); font-size:23px; color:var(--pri); font-weight:700; }
+  .tile .d { display:block; font-size:10.5px; color:var(--mut); margin-top:5px; }
+
+  /* ---- 两栏 / 卡片 ---- */
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
+  .card { position:relative; scroll-margin-top:88px;
+    background:linear-gradient(180deg,var(--card-top),var(--card-bot));
+    border:1px solid var(--line); border-radius:16px; padding:18px 18px 20px; margin-bottom:18px;
+    box-shadow:var(--shadow); transition:border-color .2s, box-shadow .2s, background .25s; }
+  .card::before { content:""; position:absolute; left:20px; right:20px; top:0; height:1px; opacity:.85;
+    background:linear-gradient(90deg,transparent,var(--pri) 22%,var(--pri2) 78%,transparent); transition:background .25s; }
+  .card:target { border-color:var(--line-strong); box-shadow:0 0 0 1px var(--hint-edge), var(--shadow); }
+  .card-head { display:flex; align-items:center; gap:11px; margin-bottom:16px; padding-bottom:13px;
+    border-bottom:1px solid var(--line); }
+  .idx { font-family:var(--mono); font-size:10.5px; font-weight:700; letter-spacing:.6px; color:var(--on-pri);
+    background:var(--grad-neon); border-radius:7px; padding:3px 8px; flex:0 0 auto; transition:background .25s; }
+  .card-head h2 { margin:0; font-size:15px; font-weight:600; letter-spacing:.5px; }
+  .tag { margin-left:auto; font-size:10.5px; font-family:var(--mono); color:var(--mut);
+    border:1px solid var(--line); border-radius:999px; padding:4px 10px; white-space:nowrap; }
+
+  /* ---- 内部分块 / 表单网格 ---- */
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:13px; padding:14px; margin-top:14px; transition:.25s; }
+  .panel-head { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .ph-title { font-family:var(--mono); font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--pri); }
+  .ph-note { margin-left:auto; font-size:11px; color:var(--mut); }
+  .form-grid { display:grid; gap:12px; }
+  .cols-2 { grid-template-columns:repeat(2,1fr); }
+  .cols-3 { grid-template-columns:repeat(3,1fr); }
+  .cols-4 { grid-template-columns:1.7fr 1fr 1fr; }
+  .span2 { grid-column:span 2; }
+  .field { margin-bottom:12px; min-width:0; }
+  label.lbl { display:flex; align-items:center; gap:6px; margin:0 0 6px; font-size:12px; color:var(--txt); letter-spacing:.2px; }
+  label.lbl small { color:var(--mut); font-size:11px; }
+  .split2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .col { min-width:0; }
+  .subpanel { border:1px solid var(--cloud-edge); border-radius:14px; padding:15px; margin-top:18px;
+    background:var(--panel); transition:.25s; }
+  .subpanel .subpanel-head { margin-bottom:13px; }
+  .sep { position:relative; text-align:center; margin:22px 0 16px; }
+  .sep::before { content:""; position:absolute; left:0; right:0; top:50%; height:1px;
+    background:linear-gradient(90deg,transparent,var(--line-strong),transparent); }
+  .sep span { position:relative; background:var(--sep-bg); padding:0 12px; font-size:10.5px; color:var(--mut);
+    font-family:var(--mono); letter-spacing:1.4px; }
+  .act { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:13px; }
+  .act.mt { margin-top:17px; }
+  .act .meta { margin-top:0; }
+  .inline-sel { width:158px; }
+  .mt { margin-top:14px; }
+
+  /* ---- 控件 ---- */
+  select, textarea, input, button { font-family:inherit; font-size:13.5px; }
+  select, input { padding:9px 11px; border:1px solid var(--line); border-radius:9px;
+    background:var(--card); color:var(--txt); width:100%; transition:border-color .18s, box-shadow .18s, background .25s; }
+  select { cursor:pointer; }
+  select:hover { border-color:var(--line-strong); }
+  textarea { width:100%; min-height:84px; padding:11px; border:1px solid var(--line);
+    border-radius:11px; resize:vertical; background:var(--card); color:var(--txt); line-height:1.6; transition:background .25s; }
+  select:focus, input:focus, textarea:focus { outline:none; border-color:var(--pri); box-shadow:var(--focus-ring); }
+  ::placeholder { color:var(--ph); }
+  select option { background:var(--card); color:var(--txt); }
+  button { background:var(--grad-neon); color:var(--on-pri); border:0; border-radius:10px; padding:9px 18px;
+    cursor:pointer; font-weight:700; font-size:13px; letter-spacing:.4px; transition:filter .15s, box-shadow .15s, transform .08s, background .25s; }
+  button:hover:not(:disabled) { filter:brightness(1.07); box-shadow:0 0 20px var(--glow1); }
+  button:active:not(:disabled) { transform:translateY(1px); }
+  button:disabled { opacity:.4; cursor:not-allowed; filter:grayscale(.4); }
+  button.ghost { background:var(--bg2); border:1px solid var(--line-strong); color:var(--mut); font-weight:600; }
+  button.ghost:hover:not(:disabled) { color:var(--txt); border-color:var(--pri); }
+  button.danger { background:linear-gradient(135deg,var(--del-fg),#ef4444); color:#fff; }
+  button.danger:disabled { background:var(--del-bg); color:var(--del-fg); border:1px solid var(--del-edge);
+    opacity:1; filter:none; box-shadow:none; }
+  button.del { background:var(--del-bg); border:1px solid var(--del-edge); color:var(--del-fg); padding:4px 13px; font-weight:700; }
+  button.del:hover:not(:disabled) { background:var(--del-bg); box-shadow:none; filter:brightness(.92); }
+
+  .mode { display:inline-flex; gap:4px; background:var(--bg2); border:1px solid var(--line);
+    border-radius:11px; padding:4px; }
+  .mode label { border:1px solid transparent; border-radius:8px; padding:7px 16px; cursor:pointer;
+    display:inline-block; font-size:12.5px; color:var(--mut); transition:.15s; }
+  .mode input { display:none; }
+  .mode label:has(input:checked) { background:var(--grad-soft); border-color:var(--chip-edge); color:var(--txt);
+    font-weight:700; box-shadow:0 0 14px var(--glow1); }
+
+  /* ---- 提示 / 状态 ---- */
+  .meta { font-size:12px; color:var(--mut); font-family:var(--mono); }
+  .hint { font-size:12px; color:var(--mut); margin:0; line-height:1.75; }
+  .vhint { font-size:11px; color:var(--pri); margin:5px 0 9px; line-height:1.55; font-family:var(--mono);
+    background:var(--panel); border:1px dashed var(--hint-edge); border-radius:8px; padding:6px 9px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; user-select:text; }
+  .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; border:1px solid transparent;
+    font-family:var(--mono); }
+  .badge.local { background:var(--good-bg); color:var(--good-fg); border-color:var(--good-edge); }
+  .badge.cloud { background:var(--cloud-bg); color:var(--cloud-fg); border-color:var(--cloud-edge); }
+
+  /* ---- 语法预览 / 校验 / 输出 ---- */
+  .tsPreview { background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+    font-family:var(--mono); font-size:12.5px; line-height:1.7; white-space:pre-wrap;
+    max-height:280px; overflow:auto; box-shadow:var(--inset); transition:background .25s; }
+  .tsPreview .ts-sec { font-weight:700; color:var(--pri); }
+  .tsPreview .ts-app { color:var(--pri2); font-weight:600; }
+  .tsPreview .ts-cmt { color:var(--mut); font-style:italic; }
+  .tsPreview .ts-var { background:var(--cloud-bg); color:var(--cloud-fg); border-radius:4px; padding:0 3px; }
+  .tsList { margin:6px 0 10px; padding-left:20px; font-size:12.5px; color:var(--mut); font-family:var(--mono); }
+  .tsList li { margin:3px 0; }
+  .tsList.warn li { color:var(--warn-fg); }
+  .chk { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--txt); margin:8px 0; cursor:pointer; }
+  .chk input { width:auto; accent-color:var(--pri); }
+  .tsVerifyOut { border:1px solid var(--line); border-radius:10px; padding:11px 13px; font-size:13px;
+    background:var(--panel); min-height:46px; transition:.25s; }
+  .tsVerifyOut .vrow { display:flex; gap:8px; align-items:flex-start; margin:5px 0; }
+  .tsVerifyOut .badge-v { font-size:10.5px; padding:1px 8px; border-radius:999px; color:var(--on-pri);
+    flex:0 0 auto; font-weight:700; }
+  .tsVerifyOut .v-error { background:var(--danger-fg); }
+  .tsVerifyOut .v-warn { background:var(--warn-fg); }
+  .tsVerifyOut .v-info { background:var(--info-fg); }
+  .tsVerifyOut .v-ok { color:var(--ok-fg); font-weight:700; }
+  .tsVerifyOut .chip { display:inline-block; background:var(--cloud-bg); border:1px solid var(--cloud-edge);
+    border-radius:999px; padding:1px 9px; font-size:11.5px; margin:2px 4px 2px 0; color:var(--cloud-fg); font-family:var(--mono); }
+  .out { white-space:pre-wrap; line-height:1.7; font-size:12.5px; margin-top:0; font-family:var(--mono);
+    background:var(--bg2); border:1px solid var(--line); border-left:2px solid var(--pri); border-radius:10px;
+    padding:11px 12px; max-height:320px; overflow:auto; color:var(--out-txt); transition:background .25s; }
+
+  /* ---- 参数行 / 模板块 ---- */
+  .rep { border:1px solid var(--line); border-radius:12px; padding:11px 12px; margin-top:10px; background:var(--panel); transition:.25s; }
+  .rep-head { display:flex; justify-content:space-between; align-items:center; font-weight:600; font-size:12.5px;
+    margin-bottom:9px; padding-bottom:7px; border-bottom:1px solid var(--line); letter-spacing:.3px; }
+  .rep-body { display:block; }
+  .rep-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px 12px; align-items:end;
+    margin:8px 0; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card); }
+  .rep-row .fld { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .rep-row .fld > span { font-size:11.5px; color:var(--mut); font-family:var(--mono); }
+  .rep-row .del { background:var(--del-bg); border:1px solid var(--del-edge); color:var(--del-fg); padding:6px 12px; justify-self:end; }
+  .rep-row .del:hover { background:var(--del-bg); box-shadow:none; }
+  .tplblock { border:1px solid var(--line); border-left:2px solid var(--pri); border-radius:12px; padding:13px;
+    margin-top:11px; background:var(--bg2); transition:.25s; }
+  .tpl-head { display:flex; justify-content:space-between; align-items:center; font-weight:600; font-size:13px;
+    margin-bottom:9px; gap:8px; }
+  .tpl-head small { color:var(--mut); font-family:var(--mono); font-weight:400; }
+  .tpl-head .del { background:var(--del-bg); border:1px solid var(--del-edge); color:var(--del-fg); padding:3px 12px; }
+  .tpl-body { display:block; }
+  a.path { color:var(--pri); word-break:break-all; text-decoration:none; border-bottom:1px dashed var(--chip-edge); }
+  a.path:hover { color:var(--pri2); border-bottom-color:var(--pri2); }
+
+  /* ---- 弹窗 ---- */
+  .modal { position:fixed; inset:0; background:var(--modal-bg); backdrop-filter:blur(4px);
+    display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px; z-index:50; overflow:auto; }
+  .modal[hidden] { display:none; }
+  .modal-card { background:var(--card); border:1px solid var(--chip-edge); border-radius:16px; width:100%;
+    max-width:760px; box-shadow:var(--shadow-modal); transition:background .25s; }
+  .modal-head { display:flex; justify-content:space-between; align-items:center; padding:15px 18px;
+    border-bottom:1px solid var(--line); }
+  .modal-head h2 { margin:0; font-size:15px; }
+  .modal-head .ghost { padding:4px 12px; }
+  .modal-body { padding:16px 18px; max-height:68vh; overflow:auto; }
+  .modal-foot { display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:13px 18px;
+    border-top:1px solid var(--line); }
+
+  .foot { margin-top:30px; padding-top:16px; border-top:1px solid var(--line); text-align:center;
+    font-size:11px; color:var(--mut); font-family:var(--mono); letter-spacing:.6px; }
+
+  @media (max-width:1080px) {
+    .hero { grid-template-columns:1fr; }
+    .grid2 { grid-template-columns:1fr; }
+    .cols-4 { grid-template-columns:1fr 1fr; }
+    .cols-4 .span2 { grid-column:auto; }
+  }
+  @media (max-width:820px) {
+    .appbar { flex-wrap:wrap; gap:12px; padding:12px 16px; }
+    .steps { order:3; width:100%; overflow-x:auto; margin-left:0; padding-bottom:2px; }
+    .appbar-act { margin-left:auto; }
+    .split2 { grid-template-columns:1fr; }
+    .cols-2, .cols-3, .cols-4 { grid-template-columns:1fr; }
+    .span2 { grid-column:auto; }
+  }
+</style></style>
+</head>
+<body>
+<div class="aurora"></div>
+
+<header class="appbar">
+  <div class="brand">
+    <div class="mark">&#10021;</div>
+    <div>
+      <h1>LLM 编排 + CONFIG FORGE</h1>
+      <p>config forge · web console</p>
+    </div>
+  </div>
+  <nav class="steps">
+    <a class="step" href="#s-router"><i>01</i>路由</a>
+    <a class="step" href="#s-model"><i>02</i>模型</a>
+    <a class="step" href="#s-forge"><i>03</i>生成</a>
+    <a class="step" href="#s-studio"><i>04</i>工作室</a>
+  </nav>
+  <div class="appbar-act">
+    <div class="theme-switch" id="themeSwitch" role="group" aria-label="界面风格切换">
+      <button type="button" class="ts-opt" data-tv="dark" title="夜晚风格">夜</button>
+      <button type="button" class="ts-opt" data-tv="light" title="白天风格">日</button>
+    </div>
+    <span class="chipstat">引擎 <b>CG v11</b></span>
+    <span class="chipstat">模板 <b id="statTpl">17</b></span>
+    <span class="chipstat">本地 <b id="statLocal">0</b></span>
+    <span class="chipstat"><span class="dot"></span>就绪</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ 概览 ============ -->
+  <section class="hero">
+    <div>
+      <span class="eyebrow">config forge · web console</span>
+      <h2>一句话出配置，也支持逐段手工填表</h2>
+      <p>上层 LLM 负责理解与规划，下层 CG 引擎负责确定性渲染，两者解耦。模板库双轨运行：官方库只读作基准，工作室产出的模板可改可删、版本可回退，全程离线、不出本机。</p>
+    </div>
+    <div class="tiles">
+      <div class="tile"><span class="k">官方模板</span><b class="v" id="statTpl2">17</b><span class="d">CG 自带 · 只读基准</span></div>
+      <div class="tile"><span class="k">本地模板</span><b class="v" id="statLocal2">0</b><span class="d">工作室产出 · 可改可删</span></div>
+      <div class="tile"><span class="k">渲染引擎</span><b class="v">CG</b><span class="d">确定性 · 不联网</span></div>
+      <div class="tile"><span class="k">部署形态</span><b class="v">离线</b><span class="d">自包含 · 文件夹分发</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 左：路由 / 右：模型 ============ -->
+  <div class="grid2">
+    <section class="card" id="s-router">
+      <div class="card-head">
+        <span class="idx">01</span>
+        <h2>LLM 路由演示</h2>
+        <span class="tag">model router</span>
+      </div>
+      <div class="mode" id="mode">
+        <label><input type="radio" name="mode" value="auto" checked><span>自动</span></label>
+        <label><input type="radio" name="mode" value="manual"><span>手动</span></label>
+      </div>
+      <div class="field mt">
+        <label class="lbl">接入模型</label>
+        <select id="provider"><option>加载中…</option></select>
+      </div>
+      <div class="hint" id="modeHint"></div>
+      <div class="field">
+        <label class="lbl">一句话</label>
+        <textarea id="msg" placeholder="例如：讲个网络工程师的笑话"></textarea>
+      </div>
+      <div class="act">
+        <button id="send">发送</button>
+        <span class="meta" id="status"></span>
+      </div>
+      <div class="meta" id="used"></div>
+      <div class="out" id="out"></div>
+    </section>
+
+    <section class="card" id="s-model">
+      <div class="card-head">
+        <span class="idx">02</span>
+        <h2>模型设置</h2>
+        <span class="tag">cloud / local</span>
+      </div>
+      <div class="hint">所有配置只保存在本机 <b style="font-family:var(--mono)">config.local.json</b>，不进对话日志、不上传。云端与本地相互独立，各自保存、各自测试。</div>
+
+      <div class="panel-head mt"><span class="ph-title">云端模型</span><span class="ph-note">deepseek 或任意 OpenAI 兼容</span></div>
+      <div class="form-grid cols-3 mt">
+        <div class="field"><label class="lbl">Base URL <small>(可留默认)</small></label><input id="cfgBaseUrl" placeholder="https://api.deepseek.com"></div>
+        <div class="field"><label class="lbl">API Key</label><input id="cfgKey" type="password" placeholder="sk-..."></div>
+        <div class="field"><label class="lbl">模型名</label><input id="cfgModel" placeholder="deepseek-chat"></div>
+      </div>
+      <div class="act">
+        <button id="cfgSave">保存并应用</button>
+        <button id="cfgTest" class="ghost">测试连接</button>
+        <span class="meta" id="cfgStatus"></span>
+      </div>
+
+      <div class="panel-head" style="margin-top:18px"><span class="ph-title">本地模型</span><span class="ph-note">纯 Web 可改 · 热重载</span></div>
+      <div class="mode mt" id="cfgLocalKind">
+        <label><input type="radio" name="cfgLocalKind" value="local_dsh" checked><span>dsh · :8080</span></label>
+        <label><input type="radio" name="cfgLocalKind" value="local_ollama"><span>Ollama · :11434</span></label>
+      </div>
+      <div class="form-grid cols-2 mt">
+        <div class="field"><label class="lbl">Base URL</label><input id="cfgLocalUrl" placeholder="http://localhost:8080 或 11434"></div>
+        <div class="field"><label class="lbl">模型名</label><input id="cfgLocalModel" placeholder="deepseek-chat / qwen2.5:14b"></div>
+      </div>
+      <div class="act">
+        <button id="cfgSaveLocal">保存并应用</button>
+        <button id="cfgTestLocal" class="ghost">测试连接</button>
+        <span class="meta" id="cfgLocalStatus"></span>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ ③ CONFIG FORGE ============ -->
+  <section class="card" id="s-forge">
+    <div class="card-head">
+      <span class="idx">03</span>
+      <h2>CONFIG FORGE 配置生成</h2>
+      <span class="tag">skill · 确定性引擎</span>
+    </div>
+
+    <div class="form-grid cols-4">
+      <div class="field">
+        <label class="lbl">客户上下文</label>
+        <select id="cfClient"><option value="">全部（不限定客户）</option></select>
+      </div>
+      <div class="field span2">
+        <label class="lbl">选择模板（一台设备可加多个）</label>
+        <select id="cfTpl"><option>加载模板库…</option></select>
+      </div>
+      <div class="field">
+        <label class="lbl">设备 hostname</label>
+        <input id="cfHost" placeholder="SW-ACCESS-01">
+      </div>
+      <div class="field">
+        <label class="lbl">堆叠成员数 <small>(非堆叠留空)</small></label>
+        <input id="cfStack" placeholder="如 2">
+      </div>
+    </div>
+
+    <div class="hint" id="cfClientHint" style="margin-top:10px">未选客户时使用「官方模板 + 未分组模板」。选客户后仅用该客户的模板版本，各客户互不干扰。客户模板在下方「④ 模板工作室 → 客户模板管理」里复制与修改。</div>
+
+    <div class="act">
+      <button id="cfAddTpl" class="ghost">+ 添加模板</button>
+    </div>
+
+    <label class="lbl mt">已选模板与参数（按添加顺序渲染为多个段落）</label>
+    <div id="cfTplList"><span class="hint">尚未添加模板：选好模板后点「+ 添加模板」，可添加多个。</span></div>
+
+    <div class="act mt">
+      <button id="cfRun">生成配置 Excel</button>
+      <span class="meta" id="cfRunStatus"></span>
+    </div>
+
+    <div id="cfClientUsed" class="hint" style="display:none;margin-top:10px"></div>
+
+    <div class="sep"><span>OR</span></div>
+
+    <div class="mode" id="cfMode">
+      <label><input type="radio" name="cfmode" value="auto" checked><span>自动</span></label>
+      <label><input type="radio" name="cfmode" value="manual"><span>手动(本地)</span></label>
+    </div>
+
+    <div class="field mt">
+      <label class="lbl">或用一句话生成（走 LLM 规划 → 调 skill）</label>
+      <textarea id="cfNl" placeholder="例如：给 SW-ACCESS-01 生成 basic_configuration、vlan_configuration 和 uplink_interface（可多模板）"></textarea>
+    </div>
+    <div class="act">
+      <button id="cfPlan" class="ghost">一句话生成</button>
+      <button id="cfPlanDraft" class="ghost">一句话 → 填表确认</button>
+      <span class="meta" id="cfPlanStatus"></span>
+    </div>
+    <div class="meta" id="cfUsed"></div>
+    <div class="out" id="cfOut"></div>
+  </section>
+
+  <!-- ============ ④ 模板工作室 ============ -->
+  <section class="card" id="s-studio">
+    <div class="card-head">
+      <span class="idx">04</span>
+      <h2>模板工作室</h2>
+      <span class="tag">新建 / 改 / 删</span>
+    </div>
+    <div class="hint">流程：你给命令 → AI 只做语法包装（绝不创作命令）→ 你逐行检查 → 运行校验 → 确认入库。新模板存到本项目 template_studio/library/，不影响 CG。</div>
+
+    <div class="split2">
+      <div class="col">
+        <div class="panel">
+          <div class="panel-head"><span class="ph-title">输入源</span></div>
+          <div class="mode" id="tsKind">
+            <label><input type="radio" name="tskind" value="text" checked><span>粘贴命令</span></label>
+            <label><input type="radio" name="tskind" value="xlsx"><span>上传 xlsx</span></label>
+          </div>
+          <div class="form-grid cols-2 mt">
+            <div class="field"><label class="lbl">路由模式</label><select id="tsMode"><option value="auto">自动路由</option><option value="manual">手动(本地)</option></select></div>
+            <div class="field"><label class="lbl">&nbsp;</label><span class="hint">自动 = 先尝试云端规划，不可达自动降级</span></div>
+          </div>
+          <div class="field"><label class="lbl">命令区（一行一条命令；注释用 ## 跟在后面）</label><textarea id="tsContent" placeholder="hostname SW-ACCESS-01              ## 设备名&#10;interface g1/0/1&#10; switchport mode access"></textarea></div>
+          <div id="tsFileWrap" style="display:none">
+            <div class="field"><label class="lbl">选择 xlsx（A列=命令，B~E列=注释；可带堆叠图）</label><input id="tsFile" type="file" accept=".xlsx"></div>
+          </div>
+          <div class="field"><label class="lbl">需求描述 / 语言提示（可选）</label><textarea id="tsRequire" placeholder="例如：接入交换机，上行口 access，带 VLAN 管理"></textarea></div>
+          <div class="act">
+            <button id="tsGenerate">① AI 生成模板</button>
+            <span class="meta" id="tsStatus"></span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><span class="ph-title">归类</span><span class="ph-note">多段自动加段名后缀防覆盖</span></div>
+          <div class="form-grid cols-4">
+            <div class="field"><label class="lbl">分类</label><input id="tsCategory" placeholder="如 switch/access"></div>
+            <div class="field"><label class="lbl">模板名</label><input id="tsName" placeholder="如 studio_demo"></div>
+            <div class="field"><label class="lbl">显示名</label><input id="tsLabel" placeholder="如 Demo"></div>
+            <div class="field"><label class="lbl">客户 <small>(留空=未分组)</small></label><input id="tsClient" list="tsClientList" placeholder="如 华为"><datalist id="tsClientList"></datalist></div>
+          </div>
+          <div class="hint" style="margin-top:8px">填了客户，该模板<b>只在这个客户</b>的配置生成里可用；留空归入「未分组」，<b>任何客户都看不到它</b>。客户可在下方「客户模板管理」新建。</div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="panel">
+          <div class="panel-head"><span class="ph-title">正文 · 校验 · 入库</span><span class="ph-note">三道门控</span></div>
+          <div class="field"><label class="lbl">模板正文（草稿，可直接手改）</label><textarea id="tsBody" placeholder="点上方①生成后，这里显示按规范包装后的正文"></textarea></div>
+          <div class="act">
+            <button id="tsVerify" class="ghost">② 运行校验</button>
+            <button id="tsCommit" class="ghost" disabled>③ 确认入库</button>
+          </div>
+          <label class="chk"><input id="tsCheck" type="checkbox"> 我已逐行检查过正文（不勾不能入库）</label>
+          <label class="chk"><input id="tsCommit2" type="checkbox"> 已知晓将写入模板库（二次确认，防误点写库）</label>
+          <div class="field"><label class="lbl">语法预览</label><div class="tsPreview" id="tsPreview">（正文为空）</div></div>
+          <div id="tsUncoveredWrap" style="display:none">
+            <div class="field"><label class="lbl">未覆盖项（需求里提到、但命令区里没有；AI 不会自己写命令，需你补）</label><ul class="tsList warn" id="tsUncovered"></ul></div>
+          </div>
+          <div class="field"><label class="lbl">校验结果</label><div class="tsVerifyOut" id="tsVerifyOut"></div></div>
+          <div class="field"><label class="lbl">入库报告</label><div class="out" id="tsCommitOut"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- 客户模板管理（客户新建 / 官方模板复制到客户下） ---- -->
+    <div class="subpanel">
+      <div class="subpanel-head">
+        <span class="ph-title">客户模板管理 · 建客户 / 复制官方模板</span>
+        <span class="ph-note">官方库只读不动 · 每个客户各自一份，互不干扰</span>
+      </div>
+      <div class="form-grid cols-2">
+        <div class="field">
+          <label class="lbl">当前客户</label>
+          <select id="mgClientSel"><option value="">（尚无客户，请先新建）</option></select>
+        </div>
+        <div class="field">
+          <label class="lbl">新建客户名</label>
+          <input id="mgClientNew" placeholder="如 华为 / 华三">
+        </div>
+      </div>
+      <div class="act">
+        <button id="mgClientAdd" class="ghost">新建客户</button>
+      </div>
+      <div class="form-grid cols-2 mt">
+        <div class="field">
+          <label class="lbl">把官方模板复制到该客户下</label>
+          <select id="mgForkSel"><option value="">（先选客户，再选官方模板）</option></select>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end">
+          <button id="mgFork" class="ghost" style="width:100%" disabled>复制到客户下</button>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:10px">复制后该模板成为「当前客户」的专属版本，编辑会另存为新版本；别的客户仍用官方原版，官方文件始终不动。</div>
+      <div class="field mt"><label class="lbl">操作结果</label><div class="out" id="mgForkOut"></div></div>
+      <div class="act" id="mgForkConfirm" style="display:none">
+        <button id="mgForkAsNew" class="ghost">改存为新版本 v+1</button>
+        <button id="mgForkCancel" class="ghost">取消（保持现状）</button>
+        <span class="meta">该客户下已有同名模板：可改存为新版本，或取消。官方原版不受影响。</span>
+      </div>
+    </div>
+
+    <!-- ---- 模板管理 ---- -->
+    <div class="subpanel">
+      <div class="subpanel-head">
+        <span class="ph-title">模板管理 · 改已有 / 删</span>
+        <span class="ph-note">官方库只读 · 本地库一律存为新版本 v+1</span>
+      </div>
+      <div class="split2">
+        <div class="col">
+          <div class="form-grid cols-2">
+            <div class="field span2"><label class="lbl">模板（官方库那组是禁选的只读项；本地库选中即可编辑）</label><select id="mgSel"><option value="">（加载模板库…）</option></select></div>
+            <div class="field"><label class="lbl">显示名 <small>(改了会写进新版本)</small></label><input id="mgLabel" placeholder="留空 = 沿用原显示名"></div>
+            <div class="field" style="display:flex;align-items:flex-end"><button id="mgVerify" class="ghost" style="width:100%">校验改动</button></div>
+          </div>
+          <div class="field mt"><label class="lbl">模板正文（直接改；保存 → 另存为一个新版本）</label><textarea id="mgBody" style="min-height:220px" placeholder="在上方选中一个本地模板，这里会显示它的正文"></textarea></div>
+          <div class="act">
+            <button id="mgSave" class="ghost" disabled>保存为新版本</button>
+            <button id="mgDelete" class="danger" disabled>删除模板</button>
+          </div>
+          <label class="chk"><input id="mgCheck" type="checkbox"> 我已逐行检查过改后的正文（不勾不能保存；删除需连点两次确认）</label>
+        </div>
+        <div class="col">
+          <div class="field"><label class="lbl">校验结果</label><div class="tsVerifyOut" id="mgVerifyOut"></div></div>
+          <div class="field"><label class="lbl">操作结果</label><div class="out" id="mgOut"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">LLM Orchestrator × CONFIG FORGE · 离线自包含 · 数据不出本机</div>
+</main>
+
+<!-- ============ 草稿确认弹窗 ============ -->
+<div id="draftModal" class="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>确认配置参数</h2>
+      <button id="draftClose" class="ghost" title="关闭">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid cols-3">
+        <div class="field"><label class="lbl">设备 hostname</label><input id="draftHost" placeholder="SW-ACCESS-01"></div>
+        <div class="field"><label class="lbl">堆叠成员数 <small>(非堆叠留空)</small></label><input id="draftStack" placeholder="如 2"></div>
+      </div>
+      <div id="draftTplList"><span class="hint">尚未添加模板</span></div>
+    </div>
+    <div class="modal-foot">
+      <span class="meta" id="draftStatus"></span>
+      <button id="draftRun" class="ghost">确认并生成 Excel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+const $ = (id) => document.getElementById(id);
+
+// ---------- ① LLM 路由 ----------
+async function refreshProviders() {
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  const hint = {
+    auto: "自动模式：命中涉密关键词走本地，否则走云端，云端不可达自动降级本地。",
+    manual: "手动模式：下拉框只显示本地模型，强制走本地（dsh），无法选云端。"
+  };
+  $("modeHint").textContent = hint[mode];
+  const res = await fetch("/api/providers?mode=" + mode);
+  const data = await res.json();
+  const sel = $("provider");
+  sel.innerHTML = "";
+  if (!data.providers.length) { sel.innerHTML = "<option value=''>（无可用模型）</option>"; return; }
+  for (const p of data.providers) {
+    const o = document.createElement("option");
+    o.value = p.name; o.textContent = `${p.name} · ${p.kind} · ${p.model}`;
+    sel.appendChild(o);
+  }
+}
+document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener("change", refreshProviders));
+refreshProviders();
+
+$("send").addEventListener("click", async () => {
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  const msg = $("msg").value.trim();
+  if (!msg) { $("status").textContent = "请输入内容"; return; }
+  $("send").disabled = true; $("status").textContent = "请求中…"; $("out").textContent = ""; $("used").textContent = "";
+  try {
+    const res = await fetch("/api/chat", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ mode, provider: $("provider").value, message: msg }) });
+    const data = await res.json();
+    if (!res.ok) { $("status").textContent = "错误"; $("out").textContent = data.error || "未知错误"; return; }
+    const cls = data.kind === "local" ? "local" : "cloud";
+    $("used").innerHTML = `实际调用：<span class="badge ${cls}">${data.kind}</span> ${data.provider}`;
+    $("out").textContent = data.content; $("status").textContent = "完成";
+  } catch (e) { $("status").textContent = "请求失败"; $("out").textContent = String(e); }
+  finally { $("send").disabled = false; }
+});
+
+// ---------- ② CONFIG FORGE ----------
+let TEMPLATES = [];
+let CLIENTS = [];
+let CURRENT_CLIENT = "";   // 客户上下文：空 = 全部/未限定
+
+function cfClientValue(){ const el = $("cfClient"); return el ? (el.value || "").trim() : ""; }
+
+function renderTemplateSelect(){
+  const sel = $("cfTpl");
+  sel.innerHTML = "";
+  if (!TEMPLATES.length) { sel.innerHTML = "<option>无模板</option>"; return; }
+  // 按 category 分组（客户上下文已由后端解析好：列表里就是该客户视角的模板集）
+  const groups = new Map();
+  for (let i = 0; i < TEMPLATES.length; i++) {
+    const t = TEMPLATES[i];
+    const g = t.category || "未分类";
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push([i, t]);
+  }
+  for (const [g, arr] of groups) {
+    const og = document.createElement("optgroup");
+    og.label = g;
+    for (const [i, t] of arr) {
+      const o = document.createElement("option");
+      o.value = String(i);
+      const badge = t.type === "normal" ? "" : ` · ${t.type}`;
+      const ovr = t.override ? " ·已覆盖官方" : "";
+      const cli = t.client ? ` @${t.client}` : "";
+      o.textContent = `${t.label} (${t.name}${cli} @ ${t.version})${badge}${ovr}`;
+      og.appendChild(o);
+    }
+    sel.appendChild(og);
+  }
+}
+
+async function loadClients(){
+  try{
+    const res = await fetch("/api/template/clients");
+    const d = await res.json();
+    CLIENTS = d.clients || [];
+  }catch(e){ CLIENTS = []; }
+  // 归类区的客户 datalist：已建客户直接下拉可选，也允许手输新名
+  const dl = $("tsClientList");
+  if (dl) {
+    dl.innerHTML = "";
+    for (const c of CLIENTS) {
+      const o = document.createElement("option");
+      o.value = c;
+      dl.appendChild(o);
+    }
+  }
+  const mk = (firstLabel) => {
+    const f = document.createElement("option");
+    f.value = ""; f.textContent = firstLabel;
+    return f;
+  };
+  const sel = $("cfClient");
+  if (sel) {
+    const cur = cfClientValue();
+    sel.innerHTML = "";
+    sel.appendChild(mk("全部（不限定客户）"));
+    for (const c of CLIENTS) {
+      const o = document.createElement("option");
+      o.value = c; o.textContent = c;
+      sel.appendChild(o);
+    }
+    sel.value = cur;
+    if (sel.value !== cur) sel.value = "";
+  }
+  // 工作室的「当前客户」下拉：同样的客户列表，独立记忆选择
+  const msel = $("mgClientSel");
+  if (msel) {
+    const mcur = mgClientValue();
+    msel.innerHTML = "";
+    msel.appendChild(mk(CLIENTS.length ? "（选择客户）" : "（尚无客户，请先新建）"));
+    for (const c of CLIENTS) {
+      const o = document.createElement("option");
+      o.value = c; o.textContent = c;
+      msel.appendChild(o);
+    }
+    msel.value = mcur;
+    if (msel.value !== mcur) msel.value = "";
+    mgForkSync();
+  }
+}
+
+async function loadTemplates(){
+  const client = cfClientValue();
+  CURRENT_CLIENT = client;
+  const res = await fetch("/api/templates" + (client ? "?client=" + encodeURIComponent(client) : ""));
+  const data = await res.json();
+  TEMPLATES = data.templates || [];
+  const _st = document.getElementById("statTpl"); if (_st) _st.textContent = String(TEMPLATES.length);
+  const hint = $("cfClientHint");
+  if (hint) {
+    hint.textContent = client
+      ? `当前客户「${client}」：使用该客户专属模板（顶替同名官方模板），其他客户的模板不可见。`
+      : "未选客户时使用「官方模板 + 未分组模板」。选客户后仅用该客户的模板版本，各客户互不干扰。";
+  }
+  renderTemplateSelect();
+}
+
+// ---------- ④ 客户模板管理（建客户 / 复制官方模板到客户下） ----------
+function mgClientValue(){ const el = $("mgClientSel"); return el ? (el.value || "").trim() : ""; }
+
+let MG_OFFICIAL = [];
+async function mgLoadOfficialForFork(){
+  const sel = $("mgForkSel");
+  try{
+    const res = await fetch("/api/template/entries");
+    const d = await res.json();
+    MG_OFFICIAL = d.official || [];
+  }catch(e){ MG_OFFICIAL = []; }
+  sel.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = ""; none.textContent = MG_OFFICIAL.length ? "（选一个官方模板）" : "（无可用官方模板）";
+  sel.appendChild(none);
+  for (const t of MG_OFFICIAL) {
+    const o = document.createElement("option");
+    o.value = t.name;
+    o.dataset.category = t.category;
+    o.dataset.version = t.version;
+    o.textContent = t.label + " (" + t.name + " @ " + t.version + ")";
+    sel.appendChild(o);
+  }
+  mgForkSync();
+}
+
+function mgForkSync(){
+  const btn = $("mgFork");
+  const hasTpl = !!($("mgForkSel") && $("mgForkSel").value);
+  btn.disabled = !(mgClientValue() && hasTpl);
+}
+
+async function mgAddClient(){
+  const inp = $("mgClientNew");
+  const out = $("mgForkOut");
+  const name = (inp.value || "").trim();
+  if (!name) { out.textContent = "请先填客户名"; return; }
+  if (CLIENTS.indexOf(name) >= 0) { out.textContent = "客户「" + name + "」已存在"; return; }
+  try{
+    const res = await fetch("/api/client/add", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ client: name })
+    });
+    const d = await res.json();
+    if (!res.ok) { out.textContent = "失败：" + (d.error || res.status); return; }
+    CLIENTS = d.clients || [];
+    inp.value = "";
+    await loadClients();
+    $("mgClientSel").value = name;
+    mgForkSync();
+    out.textContent = "已新建客户「" + name + "」。现在可在下方选一个官方模板复制到它名下。";
+  }catch(e){ out.textContent = "失败：" + e; }
+}
+
+// fork 目标：needs_confirm 时记住这次请求，等用户点「改存为新版本」再带 overwrite 提交
+let MG_FORK_PENDING = null;
+
+function mgForkConfirmShow(show){
+  const box = $("mgForkConfirm");
+  if (box) box.style.display = show ? "" : "none";
+}
+
+async function mgForkTemplate(force){
+  const client = mgClientValue();
+  const sel = $("mgForkSel");
+  const out = $("mgForkOut");
+  const opt = sel.selectedOptions && sel.selectedOptions[0];
+  if (!client) { out.textContent = "请先在上方选择客户"; mgForkConfirmShow(false); return; }
+  if (!opt || !opt.value) { out.textContent = "请先选一个官方模板"; mgForkConfirmShow(false); return; }
+  out.textContent = force ? "改存为新版本中…" : "复制中…";
+  mgForkConfirmShow(false);
+  try{
+    const res = await fetch("/api/template/fork", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ client, category: opt.dataset.category,
+                             name: opt.value, from_version: opt.dataset.version,
+                             overwrite: !!force })
+    });
+    const d = await res.json();
+    if (!res.ok) { out.textContent = "失败：" + (d.error || res.status); return; }
+    if (d.needs_confirm) {
+      // 该客户下已有同名条目 → 给出可点的确认入口（此前只打印文字，用户无处操作）
+      MG_FORK_PENDING = { client, category: opt.dataset.category, name: opt.value,
+                          from_version: opt.dataset.version };
+      out.textContent = "⚠️ " + d.message;
+      mgForkConfirmShow(true);
+      return;
+    }
+    MG_FORK_PENDING = null;
+    out.textContent = "✅ 已复制到客户「" + d.client + "」：" + d.category + "/" + d.name + " " + d.version
+      + "（" + d.files + " 个文件）。该客户在「配置生成」里就能选到它（带 @客户 后缀）。";
+    await loadTemplates();
+    await mgRefresh();
+  }catch(e){ out.textContent = "失败：" + e; }
+}
+
+// 按字段语义给"该填什么"的示例：不同字段给不同提示（而非所有端口类字段一句"如 g1/0/1"）
+function placeholderFor(v) {
+  // 变量名是下划线 slug，先把下划线换成空格，否则 \b 词边界在slug里失效
+  const s = (((v && v.name) || "") + " " + ((v && v.display) || "")).toLowerCase().replace(/_/g, " ");
+  const has = (re) => re.test(s);
+  if (has(/\bdescription\b/)) return "如 UPLINK-TO-CORE（描述文本）";
+  if (has(/port.?channel/) && has(/\b(name|number|mode)\b/)) {
+    if (has(/\bname\b/)) return "如 Po10（通道名，接在 interface 后）";
+    if (has(/\bnumber\b/)) return "如 10（仅编号）";
+    return "如 active（常用 active / passive / on）";
+  }
+  // IP 必须排在 vlan / interface 之前：像 "vlan999 interface ip and mask" 这类字段
+  // 名字里同时含 vlan、interface 字样，放后面会被误判成接口名或 VLAN 号
+  if ((v && v.type === "ip") || has(/\b(ip|address|gateway|mask)\b/)) return has(/\bmask\b/) ? "如 10.0.0.1 255.255.255.0（地址+掩码）" : "如 10.0.0.1";
+  if (has(/\bvlan\b/) && has(/\b(list|allowed|trunk)\b/)) return "如 10,20,30（逗号分隔）";
+  if (has(/\bvlan\b/) && has(/\bname\b/)) return "如 DATA-VLAN（VLAN 名，可留空）";
+  if (has(/\bvlan\b/)) return "如 20（VLAN ID）";
+  if (has(/\binterface\b/) || has(/\b(start|end)\s+number\b/)) return "如 g1/0/1（含完整前缀，勿只填数字）";
+  if (has(/\bhostname\b/)) return "如 SW-ACCESS-01";
+  if (v && v.type === "int") return "如 1";
+  return "";
+}
+// 模板自带的 hint 作为悬浮说明（长文本用 title 承载，不撑爆行高）
+function hintAttr(v) {
+  const h = (v && v.hint) || "";
+  return h ? ` title="${String(h).replace(/"/g, "&quot;")}"` : "";
+}
+
+function tplBodyHtml(t) {
+  if (t.type === "stack_config") {
+    return `<div class="rep" data-stack="members"><div class="rep-head">堆叠成员 (member / priority)<button type="button" class="addmember ghost" style="padding:4px 10px">+ 添加成员</button></div><div class="rep-body"></div></div>`
+         + `<div class="rep" data-stack="renumber"><div class="rep-head">renumber（可选）<button type="button" class="addrenumber ghost" style="padding:4px 10px">+ 添加 renumber</button></div><div class="rep-body"></div></div>`;
+  }
+  if (t.type === "stack_picture") {
+    return `<span class="hint">堆叠连线图模板：按上方「堆叠成员数」自动嵌入对应图片，无需填参。</span>`;
+  }
+  const p = (t && t.prompts) || { vars:[], repeats:[], choices:[] };
+  let html = "";
+  for (const v of p.vars) {
+    const h = String(v.hint || "").replace(/"/g, "&quot;");
+    html += `<label class="lbl">${v.display}<input data-kind="var" data-key="${v.name}" placeholder="${placeholderFor(v)}"${h?` title="${h}"`:""}></label>`
+      + (h ? `<div class="vhint" title="${h}">${h}</div>` : "");
+  }
+  for (const c of p.choices)
+    html += `<label class="lbl">${c.label}<select data-kind="choice" data-key="${c.id}"><option value="">（不选）</option>${c.options.map(o=>`<option>${o}</option>`).join("")}</select></label>`;
+  for (const r of p.repeats)
+    html += `<div class="rep" data-rid="${r.id}"><div class="rep-head">${r.label}<button type="button" class="addrep ghost" style="padding:4px 10px">+ 添加一条</button></div><div class="rep-body"></div></div>`;
+  if (!html) html = '<span class="hint">该模板无参数</span>';
+  return html;
+}
+
+function addTplBlock(targetList, idx, prefill) {
+  const t = TEMPLATES[idx];
+  if (!t) return;
+  if (targetList.querySelector(`.tplblock[data-idx="${idx}"]`)) {
+    $("cfRunStatus").textContent = "该模板已添加，请勿重复";
+    return;
+  }
+  const block = document.createElement("div");
+  block.className = "tplblock";
+  block.dataset.idx = String(idx);
+  const badge = t.type === "normal" ? "" : ` <span class="badge cloud" style="font-size:11px">${t.type}</span>`;
+  block.innerHTML = `<div class="tpl-head"><span>${t.label} <small>(${t.name} @ ${t.version})</small>${badge}</span><button type="button" class="del" title="移除该模板">×</button></div><div class="tpl-body">${tplBodyHtml(t)}</div>`;
+  const ph = targetList.querySelector(".hint");
+  if (ph) ph.remove();
+  targetList.appendChild(block);
+  block.querySelector(".tpl-head .del").addEventListener("click", () => {
+    block.remove();
+    if (!targetList.querySelector(".tplblock"))
+      targetList.innerHTML = '<span class="hint">尚未添加模板</span>';
+  });
+  wireBlockButtons(block);
+  if (prefill) prefillBlock(block, prefill);
+}
+function wireBlockButtons(scope) {
+  scope.querySelectorAll(".addrep").forEach(b => b.addEventListener("click", () => addRepRow(b.closest(".rep"))));
+  scope.querySelectorAll(".addmember").forEach(b => b.addEventListener("click", () => addStackRow(b.closest(".rep"), "member")));
+  scope.querySelectorAll(".addrenumber").forEach(b => b.addEventListener("click", () => addStackRow(b.closest(".rep"), "renumber")));
+}
+function addRepRow(rep) {
+  const block = rep.closest(".tplblock");
+  const t = TEMPLATES[+block.dataset.idx];
+  const r = ((t.prompts && t.prompts.repeats) || []).find(x => x.id === rep.dataset.rid);
+  const cols = (r ? r.vars : []).map(v =>
+    `<label class="fld"><span>${v.display}</span><input data-kind="rvar" data-key="${v.name}" placeholder="${placeholderFor(v)}"${hintAttr(v)}></label>`
+  ).join("");
+  const row = document.createElement("div");
+  row.className = "rep-row";
+  row.innerHTML = cols + `<button type="button" class="del" title="删除本条">×</button>`;
+  row.querySelector(".del").addEventListener("click", () => row.remove());
+  rep.querySelector(".rep-body").appendChild(row);
+}
+function addStackRow(rep, kind) {
+  const row = document.createElement("div");
+  row.className = "rep-row";
+  if (kind === "member") {
+    row.innerHTML = `<label class="fld"><span>成员号 (1..n)</span><input data-kind="sm_number" placeholder="如 1"></label>`
+      + `<label class="fld"><span>priority</span><input data-kind="sm_priority" placeholder="如 16（留空默认）"></label>`
+      + `<button type="button" class="del" title="删除本条">×</button>`;
+  } else {
+    row.innerHTML = `<label class="fld"><span>当前成员号</span><input data-kind="rn_cur" placeholder="如 1"></label>`
+      + `<label class="fld"><span>renumber 为</span><input data-kind="rn_new" placeholder="如 3"></label>`
+      + `<button type="button" class="del" title="删除本条">×</button>`;
+  }
+  row.querySelector(".del").addEventListener("click", () => row.remove());
+  rep.querySelector(".rep-body").appendChild(row);
+}
+$("cfAddTpl").addEventListener("click", () => addTplBlock($("cfTplList"), +$("cfTpl").value));
+
+// 客户上下文切换：重载该客户视角的模板集
+(function(){
+  const el = $("cfClient");
+  if (el) el.addEventListener("change", () => {
+    // 已选模板块清空（模板集变了，索引不再对得上，避免张冠李戴）
+    const list = $("cfTplList");
+    if (list) list.innerHTML = '<span class="hint">客户已切换，请重新添加模板。</span>';
+    showClientUsed(null);
+    loadTemplates();
+  });
+})();
+
+
+function assembleSpecCore(listEl, hostVal, stackVal) {
+  const blocks = listEl.querySelectorAll('.tplblock');
+  if (!blocks.length) return null;
+  const dev = { hostname: (hostVal||"").trim() || "DEVICE-01",
+    category: null, templates: [], data: {} };
+  const smRaw = (stackVal||"").trim();
+  let stackMember = smRaw ? parseInt(smRaw, 10) : null;
+  let membersLen = null;
+  blocks.forEach(block => {
+    const t = TEMPLATES[+block.dataset.idx];
+    dev.templates.push({ name: t.name, version: t.version });
+    if (!dev.category) dev.category = t.category;
+    const data = {};
+    if (t.type === "stack_config") {
+      const members = [];
+      block.querySelectorAll('[data-stack=members] .rep-row').forEach(row => {
+        const n = row.querySelector('[data-kind=sm_number]').value.trim();
+        const p = row.querySelector('[data-kind=sm_priority]').value.trim();
+        if (n) members.push({ number: parseInt(n, 10), priority: parseInt(p || "16", 10) });
+      });
+      const renumber = [];
+      block.querySelectorAll('[data-stack=renumber] .rep-row').forEach(row => {
+        const c = row.querySelector('[data-kind=rn_cur]').value.trim();
+        const nv = row.querySelector('[data-kind=rn_new]').value.trim();
+        if (c) renumber.push({ cur: parseInt(c, 10), new: parseInt(nv || "0", 10) });
+      });
+      data.members = members; data.renumber = renumber;
+      if (members.length) membersLen = members.length;
+    } else if (t.type === "stack_picture") {
+      /* data 留空，靠设备级 stack_member 选连线图 */
+    } else {
+      data.vars = {}; data.repeats = {}; data.choices = {};
+      block.querySelectorAll('[data-kind=var]').forEach(el => { if (el.value !== "") data.vars[el.dataset.key] = el.value; });
+      block.querySelectorAll('[data-kind=choice]').forEach(el => { if (el.value) data.choices[el.dataset.key] = el.value; });
+      block.querySelectorAll('.rep').forEach(rep => {
+        const rows = [];
+        rep.querySelectorAll('.rep-row').forEach(row => {
+          const e = {}; row.querySelectorAll('[data-kind=rvar]').forEach(el => e[el.dataset.key] = el.value);
+          rows.push(e);
+        });
+        data.repeats[rep.dataset.rid] = rows;
+      });
+    }
+    dev.data[t.name] = data;
+  });
+  if (!stackMember && membersLen) stackMember = membersLen;
+  if (stackMember) dev.stack_member = stackMember;
+  return { devices:[dev] };
+}
+function assembleSpec() { return assembleSpecCore($("cfTplList"), $("cfHost").value, $("cfStack").value); }
+
+function showClientUsed(clients){
+  const box = $("cfClientUsed");
+  if (!box) return;
+  const arr = (clients || []).filter(Boolean);
+  if (!arr.length) { box.style.display = "none"; box.textContent = ""; return; }
+  box.style.display = "";
+  box.innerHTML = `⚠️ 本次使用客户模板：<b>${arr.join("、")}</b>　如选错客户，请改上方「客户上下文」后重新生成。`;
+}
+
+$("cfRun").addEventListener("click", async () => {
+  const spec = assembleSpec();
+  if (!spec) { $("cfRunStatus").textContent = "请先添加至少一个模板"; return; }
+  $("cfRun").disabled = true; $("cfRunStatus").textContent = "生成中…";
+  try {
+    const res = await fetch("/api/skill/run", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ spec, client: cfClientValue() }) });
+    const d = await res.json();
+    if (!res.ok) { $("cfRunStatus").textContent = "错误"; $("cfOut").textContent = d.error; return; }
+    $("cfOut").innerHTML = `✅ 已生成 ${downloadLink(d.output)}`;
+    $("cfRunStatus").textContent = "完成";
+    showClientUsed(d.clients || (cfClientValue() ? [cfClientValue()] : []));
+  } catch (e) { $("cfRunStatus").textContent = "失败"; $("cfOut").textContent = String(e); }
+  finally { $("cfRun").disabled = false; }
+});
+
+$("cfPlan").addEventListener("click", async () => {
+  const msg = $("cfNl").value.trim();
+  if (!msg) { $("cfPlanStatus").textContent = "请输入一句话"; return; }
+  const mode = document.querySelector('input[name=cfmode]:checked').value;
+  $("cfPlan").disabled = true; $("cfPlanStatus").textContent = "LLM 规划中…"; $("cfOut").textContent = "";
+  try {
+    const res = await fetch("/api/skill/plan", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ message: msg, mode, client: cfClientValue() }) });
+    const d = await res.json();
+    if (!res.ok) { $("cfPlanStatus").textContent = "错误"; $("cfOut").textContent = JSON.stringify(d, null, 2); return; }
+    const cls = d.kind === "local" ? "local" : "cloud";
+    $("cfUsed").innerHTML = `规划模型：<span class="badge ${cls}">${d.kind}</span> ${d.provider}`;
+    $("cfOut").innerHTML = `✅ 已生成 ${downloadLink(d.output)}\n\n规划出的 spec：\n${JSON.stringify(d.spec, null, 2)}`;
+    $("cfPlanStatus").textContent = "完成";
+    showClientUsed(d.clients || (cfClientValue() ? [cfClientValue()] : []));
+  } catch (e) { $("cfPlanStatus").textContent = "失败"; $("cfOut").textContent = String(e); }
+  finally { $("cfPlan").disabled = false; }
+});
+
+// ---------- 1.5 模型设置 ----------
+function downloadLink(path){
+  const base = String(path).split(/[\\/]/).pop();
+  return `<a class="path" href="/api/download?f=${encodeURIComponent(base)}" target="_blank">⬇ 下载 Excel (${base})</a>`;
+}
+let LOCAL_CFG = { local_dsh: {}, local_ollama: {} };
+const LOCAL_DEFAULTS = {
+  local_dsh:    { base_url: "http://localhost:8080",  model: "deepseek-chat" },
+  local_ollama: { base_url: "http://localhost:11434", model: "qwen2.5:14b" }
+};
+function cfgLocalKind(){
+  const el = document.querySelector('input[name=cfgLocalKind]:checked');
+  return el ? el.value : "local_dsh";
+}
+function fillLocalFields(){
+  const k = cfgLocalKind(), d = LOCAL_CFG[k] && LOCAL_CFG[k].base_url ? LOCAL_CFG[k] : LOCAL_DEFAULTS[k];
+  $("cfgLocalUrl").value = d.base_url;
+  $("cfgLocalModel").value = d.model;
+  $("cfgLocalStatus").textContent = "";
+}
+document.querySelectorAll('input[name=cfgLocalKind]').forEach(r => r.addEventListener("change", fillLocalFields));
+function renderTest(d, el){
+  if (d.ok) el.innerHTML = `连接成功：<span class="badge ${d.kind==="local"?"local":"cloud"}">${d.kind}</span> ${d.provider} · ${d.model} · ${d.ms}ms`;
+  else el.textContent = "连接失败: " + (d.error || "").slice(0, 120);
+}
+async function testProvider(name, el, btn){
+  btn.disabled = true; const old = btn.textContent;
+  btn.textContent = "测试中…"; el.textContent = "测试中…";
+  try {
+    const r = await fetch("/api/provider/test", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ provider: name }) });
+    const d = await r.json();
+    if (!r.ok) { el.textContent = "连接失败: " + (d.error||"").slice(0,120); return; }
+    renderTest(d, el);
+  } catch(e){ el.textContent = "连接失败: " + e; }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+async function loadConfig(){
+  try {
+    const d = await (await fetch("/api/config")).json();
+    const c = d.cloud_openai || {};
+    $("cfgBaseUrl").value = c.base_url || "https://api.openai.com";
+    $("cfgModel").value = c.model || "gpt-4o-mini";
+    $("cfgStatus").textContent = c.api_key_set ? `已配置 Key: ${c.api_key_mask}` : "尚未配置 Key";
+    LOCAL_CFG = { local_dsh: d.local_dsh || {}, local_ollama: d.local_ollama || {} };
+    fillLocalFields();
+  } catch(e){}
+}
+$("cfgSave").addEventListener("click", async () => {
+  const payload = { providers: { cloud_openai: {
+    api_key: $("cfgKey").value.trim(),
+    base_url: $("cfgBaseUrl").value.trim() || "https://api.openai.com",
+    model: $("cfgModel").value.trim() || "gpt-4o-mini" } } };
+  $("cfgStatus").textContent = "保存中…";
+  try {
+    const r = await fetch("/api/config", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (d.ok) { await refreshProviders(); await loadConfig(); $("cfgStatus").textContent = "已保存并应用 ✓"; }
+    else $("cfgStatus").textContent = "保存失败";
+  } catch(e){ $("cfgStatus").textContent = "保存失败: "+e; }
+});
+$("cfgTest").addEventListener("click", () => testProvider("cloud_openai", $("cfgStatus"), $("cfgTest")));
+$("cfgSaveLocal").addEventListener("click", async () => {
+  const k = cfgLocalKind();
+  const payload = { providers: { [k]: {
+    base_url: $("cfgLocalUrl").value.trim(),
+    model: $("cfgLocalModel").value.trim() } } };
+  $("cfgLocalStatus").textContent = "保存中…";
+  try {
+    const r = await fetch("/api/config", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (d.ok) { await refreshProviders(); await loadConfig(); $("cfgLocalStatus").textContent = "已保存并应用 ✓"; }
+    else $("cfgLocalStatus").textContent = "保存失败";
+  } catch(e){ $("cfgLocalStatus").textContent = "保存失败: "+e; }
+});
+$("cfgTestLocal").addEventListener("click", () => testProvider(cfgLocalKind(), $("cfgLocalStatus"), $("cfgTestLocal")));
+
+// ---------- ②b 一句话 → 填表确认（草稿弹窗） ----------
+const draftModal = $("draftModal");
+function openDraftModal() { draftModal.hidden = false; }
+function closeDraftModal() { draftModal.hidden = true; }
+$("draftClose").addEventListener("click", closeDraftModal);
+draftModal.addEventListener("click", (e) => { if (e.target === draftModal) closeDraftModal(); });
+
+function prefillBlock(block, data) {
+  if (!data) return;
+  block.querySelectorAll('[data-kind=var]').forEach(el => {
+    const v = data.vars && data.vars[el.dataset.key];
+    if (v != null && v !== "") el.value = v;
+  });
+  block.querySelectorAll('[data-kind=choice]').forEach(el => {
+    const v = data.choices && data.choices[el.dataset.key];
+    if (v) el.value = v;
+  });
+  const reps = data.repeats || {};
+  Object.keys(reps).forEach(rid => {
+    const rep = block.querySelector(`.rep[data-rid="${rid}"]`);
+    if (!rep) return;
+    (reps[rid] || []).forEach(entry => {
+      addRepRow(rep);
+      const row = rep.querySelector('.rep-body').lastElementChild;
+      row.querySelectorAll('[data-kind=rvar]').forEach(el => {
+        const v = entry[el.dataset.key];
+        if (v != null && v !== "") el.value = v;
+      });
+    });
+  });
+  if (data.members) {
+    const rep = block.querySelector('[data-stack=members]');
+    (data.members || []).forEach(m => {
+      addStackRow(rep, "member");
+      const row = rep.querySelector('.rep-body').lastElementChild;
+      row.querySelector('[data-kind=sm_number]').value = m.number;
+      row.querySelector('[data-kind=sm_priority]').value = m.priority;
+    });
+  }
+  if (data.renumber) {
+    const rep = block.querySelector('[data-stack=renumber]');
+    (data.renumber || []).forEach(rn => {
+      addStackRow(rep, "renumber");
+      const row = rep.querySelector('.rep-body').lastElementChild;
+      row.querySelector('[data-kind=rn_cur]').value = rn.cur;
+      row.querySelector('[data-kind=rn_new]').value = rn.new;
+    });
+  }
+}
+
+function findTplIndex(name, version) {
+  for (let i = 0; i < TEMPLATES.length; i++) {
+    if (TEMPLATES[i].name === name && (!version || TEMPLATES[i].version === version)) return i;
+  }
+  return -1;
+}
+
+$("cfPlanDraft").addEventListener("click", async () => {
+  const msg = $("cfNl").value.trim();
+  if (!msg) { $("cfPlanStatus").textContent = "请输入一句话"; return; }
+  const mode = document.querySelector('input[name=cfmode]:checked').value;
+  $("cfPlanDraft").disabled = true; $("cfPlanStatus").textContent = "LLM 规划中…";
+  try {
+    const res = await fetch("/api/skill/plan-draft", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ message: msg, mode }) });
+    const d = await res.json();
+    if (!res.ok) { $("cfPlanStatus").textContent = "错误"; $("cfOut").textContent = JSON.stringify(d, null, 2); return; }
+    const cls = d.kind === "local" ? "local" : "cloud";
+    $("cfUsed").innerHTML = `规划模型：<span class="badge ${cls}">${d.kind}</span> ${d.provider}`;
+    const dev = (d.draft && d.draft.devices && d.draft.devices[0]) || null;
+    if (!dev) { $("cfPlanStatus").textContent = "未规划出设备，请换种说法"; return; }
+    const list = $("draftTplList");
+    list.innerHTML = '<span class="hint">尚未添加模板</span>';
+    $("draftHost").value = dev.hostname || "";
+    $("draftStack").value = (dev.stack_member != null) ? dev.stack_member : "";
+    (dev.templates || []).forEach(tpl => {
+      const idx = findTplIndex(tpl.name, tpl.version);
+      if (idx < 0) return;
+      addTplBlock(list, idx, (dev.data && dev.data[tpl.name]) || {});
+    });
+    openDraftModal();
+    $("cfPlanStatus").textContent = "已生成参数草稿，请在弹窗中确认/修改";
+  } catch (e) { $("cfPlanStatus").textContent = "失败"; $("cfOut").textContent = String(e); }
+  finally { $("cfPlanDraft").disabled = false; }
+});
+
+$("draftRun").addEventListener("click", async () => {
+  const spec = assembleSpecCore($("draftTplList"), $("draftHost").value, $("draftStack").value);
+  if (!spec) { $("draftStatus").textContent = "请先添加至少一个模板"; return; }
+  $("draftRun").disabled = true; $("draftStatus").textContent = "生成中…";
+  try {
+    const res = await fetch("/api/skill/run", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ spec }) });
+    const r = await res.json();
+    if (!res.ok) { $("draftStatus").textContent = "错误"; $("cfOut").textContent = r.error; return; }
+    closeDraftModal();
+    $("cfOut").innerHTML = `✅ 已生成 ${downloadLink(r.output)}`;
+    $("cfPlanStatus").textContent = "完成";
+  } catch (e) { $("draftStatus").textContent = "失败"; $("cfOut").textContent = String(e); }
+  finally { $("draftRun").disabled = false; }
+});
+
+// ---------- ③ 模板工作室（新建模板 / AI 包装 → 检查 → 入库） ----------
+let TS_VERIFIED = null;  // 最近一次校验结果；入库依赖它
+
+function _tsEsc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+function _tsB64(buf) {
+  let s = "";
+  const b = new Uint8Array(buf);
+  for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+  return btoa(s);
+}
+function _tsRenderPreview() {
+  const body = $("tsBody").value;
+  const el = $("tsPreview");
+  if (!body.trim()) { el.textContent = "（正文为空）"; return; }
+  el.innerHTML = body.split("\n").map(line => {
+    if (/^! ---/.test(line)) return `<span class="ts-sec">${_tsEsc(line)}</span>`;
+    if (/^! @(repeat|choice|option|end)\b/.test(line)) return `<span class="ts-app">${_tsEsc(line)}</span>`;
+    if (/^!/.test(line)) return `<span class="ts-cmt">${_tsEsc(line)}</span>`;
+    return _tsEsc(line).replace(/\{\{([^}]+)\}\}/g, '<span class="ts-var">{{$1}}</span>');
+  }).join("\n");
+}
+// 未覆盖项：只在真有内容（需求提到但命令区缺的命令）时才显示，空态不占版面
+function _tsRenderUncovered(uncovered) {
+  const arr = Array.isArray(uncovered) ? uncovered : [];
+  const wrap = $("tsUncoveredWrap");
+  if (!wrap) return;
+  if (!arr.length) { wrap.style.display = "none"; return; }
+  wrap.style.display = "";
+  $("tsUncovered").innerHTML = arr.map(x => `<li>${_tsEsc(x)}</li>`).join("");
+}
+// 校验结果渲染（①②入库区与④管理区共用一份，避免两处实现漂移）
+function _tsRenderVerify(d, boxId, statusId, statusText) {
+  const rows = [];
+  (d.hard || []).forEach(h => rows.push(`<div class="vrow"><span class="badge-v ${h.level === "error" ? "v-error" : "v-warn"}">${h.level === "error" ? "阻塞" : "警告"}</span><span>${_tsEsc(h.msg)}</span></div>`));
+  (d.soft || []).forEach(h => rows.push(`<div class="vrow"><span class="badge-v v-warn">提醒</span><span>${_tsEsc(h.msg)}</span></div>`));
+  rows.push(`<div class="vrow"><span class="v-ok">${d.smoke_ok ? "✓" : "✗"}</span><span>渲染冒烟：${d.smoke_ok ? "通过" : "失败"}${d.smoke_ok ? "" : "（" + _tsEsc(d.smoke_error || "") + "）"}</span></div>`);
+  rows.push(`<div class="vrow"><span class="v-ok">✓</span><span>解析段：${_tsEsc((d.sections || []).join("、") || "（无）")}</span></div>`);
+  const vars = d.variables || [];
+  rows.push(`<div style="margin-top:6px">变量（${vars.length}）：${vars.length ? vars.map(v => `<span class="chip">${_tsEsc(v)}</span>`).join("") : "（无）"}</div>`);
+  $(boxId).innerHTML = rows.join("") || '<span class="hint">无问题</span>';
+  if (statusId) $(statusId).textContent = statusText;
+  return !!d.passed;
+}
+function _tsSyncKind() {
+  const kind = document.querySelector('input[name=tskind]:checked').value;
+  $("tsContent").style.display = kind === "text" ? "" : "none";
+  $("tsFileWrap").style.display = kind === "xlsx" ? "" : "none";
+}
+function _tsSyncCommit() {
+  $("tsCommit").disabled = !($("tsCheck").checked && TS_VERIFIED && TS_VERIFIED.passed);
+}
+document.querySelectorAll('input[name=tskind]').forEach(r => r.addEventListener("change", _tsSyncKind));
+_tssyncKindInit();
+function _tssyncKindInit() { _tsSyncKind(); }
+
+$("tsCheck").addEventListener("change", () => { $("tsCommit2").checked = false; _tsSyncCommit(); });
+$("tsCommit2").addEventListener("change", _tsSyncCommit);
+$("tsBody").addEventListener("change", _tsRenderPreview);
+
+// ① AI 生成模板（草稿不落盘）
+$("tsGenerate").addEventListener("click", async () => {
+  const kind = document.querySelector('input[name=tskind]:checked').value;
+  const requirement = $("tsRequire").value.trim();
+  const category = $("tsCategory").value.trim();
+  const name = $("tsName").value.trim();
+  const label = $("tsLabel").value.trim();
+  if (!category) { $("tsStatus").textContent = "请先填分类（如 switch/access）"; return; }
+  const payload = { kind, requirement, category, name, label, mode: $("tsMode").value };
+  if (kind === "text") {
+    const content = $("tsContent").value.trim();
+    if (!content) { $("tsStatus").textContent = "请粘贴命令或上传 xlsx"; return; }
+    payload.content = content;
+  } else {
+    const f = $("tsFile").files[0];
+    if (!f) { $("tsStatus").textContent = "请选择 xlsx 文件"; return; }
+    try { payload.file_b64 = _tsB64(await f.arrayBuffer()); }
+    catch (e) { $("tsStatus").textContent = "读取文件失败: " + e; return; }
+  }
+  $("tsGenerate").disabled = true; $("tsStatus").textContent = "AI 包装中…";
+  try {
+    const res = await fetch("/api/template/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const d = await res.json();
+    if (!res.ok) { $("tsStatus").textContent = "错误"; $("tsBody").value = ""; alert(d && d.error ? d.error : JSON.stringify(d)); return; }
+    $("tsBody").value = (d.draft && d.draft.body) || "";
+    TS_VERIFIED = null;
+    $("tsVerifyOut").innerHTML = ""; $("tsCommitOut").textContent = "";
+    $("tsCommit2").checked = false; _tsSyncCommit();
+    _tsRenderPreview(); _tsRenderUncovered(d.draft && d.draft.uncovered);
+    $("tsStatus").textContent = "已出草稿（未落盘）→ 请检查后点「② 运行校验」";
+  } catch (e) { $("tsStatus").textContent = "失败"; $("tsBody").value = String(e); }
+  finally { $("tsGenerate").disabled = false; }
+});
+
+// ② 运行校验（硬校验=引擎，软提醒=规则扫描）
+$("tsVerify").addEventListener("click", async () => {
+  const body = $("tsBody").value;
+  if (!body.trim()) { $("tsStatus").textContent = "正文为空，请先生成或手填"; return; }
+  $("tsVerify").disabled = true; $("tsStatus").textContent = "校验中…";
+  try {
+    const res = await fetch("/api/template/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) });
+    const d = await res.json();
+    if (!res.ok) { $("tsStatus").textContent = "错误"; $("tsVerifyOut").textContent = JSON.stringify(d, null, 2); return; }
+    TS_VERIFIED = d;
+    _tsRenderVerify(d, "tsVerifyOut", "tsStatus",
+      d.passed ? "校验通过（仍需勾「我已检查」才能入库）" : "存在阻塞项，修正后再校验");
+    _tsSyncCommit();
+  } catch (e) { $("tsStatus").textContent = "校验失败"; $("tsVerifyOut").textContent = String(e); }
+  finally { $("tsVerify").disabled = false; }
+});
+
+// ③ 确认入库（三重门控：校验通过 + 已检查勾选 + 二次确认勾选）
+$("tsCommit").addEventListener("click", async () => {
+  if (!TS_VERIFIED || !TS_VERIFIED.passed) { $("tsStatus").textContent = "请先通过②校验"; return; }
+  if (!$("tsCheck").checked) { $("tsStatus").textContent = "请先勾选「我已逐行检查过正文」"; return; }
+  if (!$("tsCommit2").checked) { $("tsStatus").textContent = "请勾选二次确认（确认写入模板库）"; return; }
+  const body = $("tsBody").value;
+  if (!body.trim()) { $("tsStatus").textContent = "正文为空"; return; }
+  $("tsCommit").disabled = true; $("tsStatus").textContent = "入库中…";
+  try {
+    const res = await fetch("/api/template/commit", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body, category: $("tsCategory").value.trim(), name: $("tsName").value.trim(), label: $("tsLabel").value.trim(), client: ($("tsClient") && $("tsClient").value || "").trim() }) });
+    const d = await res.json();
+    if (!res.ok) { $("tsStatus").textContent = "入库失败"; $("tsCommitOut").textContent = JSON.stringify(d, null, 2); return; }
+    $("tsCommitOut").textContent = (d.report || "") + ((d.written && d.written.length) ? "\n\n已写入:\n" + d.written.join("\n") : "");
+    $("tsStatus").textContent = "入库完成 ✓";
+  } catch (e) { $("tsStatus").textContent = "入库失败"; $("tsCommitOut").textContent = String(e); }
+  finally { $("tsCommit").disabled = false; }
+});
+
+// ---------- ④ 模板管理（改已有模板 → 存新版本 / 删模板） ----------
+// 口径：官方库（CG 自带）= 只读基准，下拉里是禁选项；本地库 = 可改可删。
+let MG_CTX = null;        // 当前选中的本地模板 {category,name,label,version}
+let MG_VERIFIED = null;   // 管理区最近一次校验结果
+let MG_ARMED = false;     // 删除二次确认：连点两次才真发请求
+
+function _mgSyncSave() {
+  const ok = !!(MG_CTX && MG_VERIFIED && MG_VERIFIED.passed && $("mgCheck").checked);
+  $("mgSave").disabled = !ok;
+  $("mgDelete").disabled = !MG_CTX;
+}
+function _mgFill(t) {
+  MG_CTX = t; MG_VERIFIED = null;
+  $("mgCheck").checked = false;
+  $("mgVerifyOut").innerHTML = ""; $("mgOut").textContent = "";
+}
+function _mgClear() {
+  MG_CTX = null; MG_VERIFIED = null; MG_ARMED = false;
+  $("mgDelete").textContent = "删除模板";
+  $("mgBody").value = ""; $("mgLabel").value = "";
+  $("mgCheck").checked = false;
+  $("mgVerifyOut").innerHTML = ""; $("mgOut").textContent = "";
+  _mgSyncSave();
+}
+function _mgOpt(group, t, editable) {
+  const o = document.createElement("option");
+  o.textContent = `${t.category}/${t.name} · ${t.label || ""} · ${t.version || ""}`
+    + (t.client ? ` · @${t.client}` : (editable ? " · 未分组" : "")) + (editable ? "" : "（只读）");
+  if (editable) {
+    o.value = JSON.stringify({ category: t.category, name: t.name, label: t.label, version: t.version });
+  } else {
+    o.disabled = true;  // 官方库只读基准：禁选，避免用户选上去却点不动
+    o.value = "";
+  }
+  group.appendChild(o);
+  return o;
+}
+async function mgRefresh() {
+  try {
+    const _c = mgClientValue();
+    const res = await fetch("/api/template/entries" + (_c ? "?client=" + encodeURIComponent(_c) : ""));
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || ("HTTP " + res.status));
+    const sel = $("mgSel");
+    sel.innerHTML = "";
+    const g1 = document.createElement("optgroup");
+    g1.label = `官方库 CG 自带（${(d.official || []).length} 个 · 只读）`;
+    (d.official || []).forEach(t => _mgOpt(g1, t, false));
+    const _c2 = mgClientValue();
+    const g2 = document.createElement("optgroup");
+    g2.label = _c2
+      ? `本地库 · 客户「${_c2}」+ 未分组（${(d.local || []).length} 个 · 可改可删）`
+      : `本地库 工作室（${(d.local || []).length} 个 · 可改可删）`;
+    (d.local || []).forEach(t => _mgOpt(g2, t, true));
+    sel.appendChild(g1); sel.appendChild(g2);
+    const _sl = document.getElementById("statLocal"); if (_sl) _sl.textContent = String(g2.children.length);
+    // 记住刷新前的选中项，刷新后按 category+name 恢复（客户归属变了也不影响定位）
+    const _prev = MG_CTX ? { category: MG_CTX.category, name: MG_CTX.name } : null;
+    _mgClear();
+    if (_prev) {
+      const opt = [...sel.options].find(o => {
+        if (!o.value) return false;
+        try {
+          const j = JSON.parse(o.value);
+          return j.category === _prev.category && j.name === _prev.name;
+        } catch (e) { return false; }
+      });
+      if (opt) {
+        sel.value = opt.value;
+        // 直接回填正文：select.value 被程序改写不会触发 change，用户"再点一次同样的项"
+        // 也因值未变而不触发 → 之前正是因此正文一直空白
+        await mgPick();
+      }
+    }
+  } catch (e) {
+    $("mgOut").textContent = "读取模板库失败：" + e;
+  }
+}
+async function mgPick() {
+  const raw = $("mgSel").value;
+  if (!raw) {  // 选中的是官方库（禁选项时走不到，留兜底提示）
+    _mgClear();
+    $("mgOut").textContent = "官方库是只读基准，只能看；要改就选本地库那组。";
+    return;
+  }
+  const t = JSON.parse(raw);
+  _mgFill(t);
+  _mgSyncSave();
+  try {
+    const qs = new URLSearchParams({ source: "local", category: t.category, name: t.name, version: t.version || "" });
+    const res = await fetch("/api/template/body?" + qs.toString());
+    const d = await res.json();
+    if (!res.ok) { $("mgOut").textContent = d.error || JSON.stringify(d); return; }
+    $("mgBody").value = d.body || "";
+    $("mgLabel").value = d.label || "";
+  } catch (e) { $("mgOut").textContent = "读取正文失败：" + e; }
+}
+$("mgSel").addEventListener("change", mgPick);
+// 兜底：选中项没变时 change 不会触发，点同一个已选项也要能重新加载正文
+$("mgSel").addEventListener("click", () => { if ($("mgSel").value) mgPick(); });
+$("mgCheck").addEventListener("change", _mgSyncSave);
+
+// 校验改动（与管理区保存共用 /api/template/verify）
+$("mgVerify").addEventListener("click", async () => {
+  if (!MG_CTX) { $("mgOut").textContent = "请先选中一个本地模板"; return; }
+  const body = $("mgBody").value;
+  if (!body.trim()) { $("mgOut").textContent = "正文为空，先读一条模板出来"; return; }
+  $("mgVerify").disabled = true;
+  try {
+    const res = await fetch("/api/template/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) });
+    const d = await res.json();
+    if (!res.ok) {
+      MG_VERIFIED = null;
+      $("mgVerifyOut").textContent = d.error || JSON.stringify(d);
+      $("mgOut").textContent = "校验没跑通：" + (d.error || res.status);
+    } else {
+      MG_VERIFIED = d;
+      _tsRenderVerify(d, "mgVerifyOut");
+      $("mgOut").textContent = d.passed ? "校验通过 → 勾上检查项即可保存" : "有阻塞项，先改再存";
+    }
+  } catch (e) { MG_VERIFIED = null; $("mgOut").textContent = "校验失败：" + e; }
+  finally { _mgSyncSave(); $("mgVerify").disabled = false; }
+});
+
+// 保存：一律存新版本（后端 bump v+1），旧版本留着可回退
+$("mgSave").addEventListener("click", async () => {
+  if (!MG_CTX) { $("mgOut").textContent = "请先选中一个本地模板"; return; }
+  if (!$("mgCheck").checked) { $("mgOut").textContent = "请先勾选「我已逐行检查过改后的正文」"; return; }
+  if (!MG_VERIFIED || !MG_VERIFIED.passed) { $("mgOut").textContent = "请先点「校验改动」并跑通"; return; }
+  const ctx = MG_CTX, label = $("mgLabel").value.trim();
+  $("mgSave").disabled = true;
+  try {
+    const res = await fetch("/api/template/save", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: "local", category: ctx.category, name: ctx.name, body: $("mgBody").value, label }) });
+    const d = await res.json();
+    if (!res.ok) { $("mgOut").textContent = "保存失败：" + (d.error || JSON.stringify(d)); return; }
+    $("mgOut").textContent = (d.report || "") +
+      (d.changed ? `\n→ 已存为新版本 ${d.version}（旧版本保留，随时能回退）` : "\n→ 正文与当前版本一致，没有产生新版本");
+    await mgRefresh();
+    const opt = [...$("mgSel").options].find(o => o.value &&
+      JSON.parse(o.value).category === ctx.category && JSON.parse(o.value).name === ctx.name);
+    if (opt) { $("mgSel").value = opt.value; await mgPick(); }
+  } catch (e) { $("mgOut").textContent = "保存失败：" + e; }
+  finally { _mgSyncSave(); }
+});
+
+// 删除：连点两次确认（防误点把模板删了）
+$("mgDelete").addEventListener("click", async () => {
+  if (!MG_CTX) { $("mgOut").textContent = "请先选中一个本地模板"; return; }
+  if (!MG_ARMED) {
+    MG_ARMED = true;
+    $("mgDelete").textContent = `再点一次确认删除 ${MG_CTX.category}/${MG_CTX.name}`;
+    setTimeout(() => { MG_ARMED = false; $("mgDelete").textContent = "删除模板"; }, 8000);
+    return;
+  }
+  MG_ARMED = false; $("mgDelete").textContent = "删除模板";
+  const ctx = MG_CTX;
+  $("mgDelete").disabled = true;
+  try {
+    const res = await fetch("/api/template/delete", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: "local", category: ctx.category, name: ctx.name }) });
+    const d = await res.json();
+    if (!res.ok) { $("mgOut").textContent = "删除失败：" + (d.error || JSON.stringify(d)); return; }
+    const rm = d.removed || [];
+    $("mgOut").textContent = `已删除 ${d.category}/${d.name}（清掉 ${rm.length} 个版本目录：${rm.join("、")}）`;
+    await mgRefresh();
+  } catch (e) { $("mgOut").textContent = "删除失败：" + e; }
+  finally { _mgSyncSave(); }
+});
+
+// 客户模板管理区事件
+(function(){
+  const addBtn = $("mgClientAdd");
+  if (addBtn) addBtn.addEventListener("click", mgAddClient);
+  const forkBtn = $("mgFork");
+  if (forkBtn) forkBtn.addEventListener("click", mgForkTemplate);
+  const forkSel = $("mgForkSel");
+  if (forkSel) forkSel.addEventListener("change", mgForkSync);
+  const csel = $("mgClientSel");
+  if (csel) csel.addEventListener("change", () => { mgForkSync(); mgRefresh(); });
+  const asNew = $("mgForkAsNew");
+  if (asNew) asNew.addEventListener("click", () => mgForkTemplate(true));
+  const cancel = $("mgForkCancel");
+  if (cancel) cancel.addEventListener("click", () => {
+    mgForkConfirmShow(false);
+    const o = $("mgForkOut"); if (o) o.textContent = "已取消，模板库未改动。";
+  });
+})();
+
+loadClients().then(() => { mgLoadOfficialForFork(); loadTemplates(); });
+loadConfig();
+mgRefresh();
+
+// ---------- 界面风格：夜晚 / 白天（存 localStorage，刷新保持） ----------
+(function () {
+  const KEY = "cf_theme";
+  const root = document.documentElement;
+  const btns = Array.prototype.slice.call(document.querySelectorAll(".ts-opt"));
+  let cur = "dark";
+  try { cur = localStorage.getItem(KEY) || "dark"; } catch (e) { cur = "dark"; }
+  if (cur !== "light" && cur !== "dark") cur = "dark";
+  function paint(t) {
+    root.setAttribute("data-theme", t);
+    btns.forEach(b => b.classList.toggle("active", b.dataset.tv === t));
+  }
+  paint(cur);
+  btns.forEach(b => b.addEventListener("click", () => {
+    cur = b.dataset.tv === "dark" ? "dark" : "light"; // 点哪个就切到哪个，不翻转
+    paint(cur);
+    try { localStorage.setItem(KEY, cur); } catch (e) { /* 隐私模式忽略 */ }
+  }));
+})();
+</script>
+</body>
+</html>
