@@ -12,10 +12,10 @@
 
 ## 介绍视频
 
-> GitHub 不支持在 README 内直接播放视频（会剥离播放器标签）。视频为 31MB MP4，点击下方链接观看/下载。
+> GitHub 不支持在 README 内直接播放视频（会剥离播放器标签）。点击下方链接前往 B 站观看完整演示。
 
-- [点击观看 config-forge.mp4（Releases 资产）](https://github.com/hoodlumml/config-forge/releases/download/v1.0.0/config-forge.mp4)
-- 视频文件同时存放于仓库 `docs/config-forge.mp4`。
+- **[B 站 · config-forge（视频演示）](https://www.bilibili.com/video/BV1wqHD6qEsv/)** —— 便携网络配置生成器：自然语言生成交换机配置，确定性渲染为多 sheet Excel，内置运行时无需安装。
+- [Releases 资产 config-forge.mp4（31MB，直接下载）](https://github.com/hoodlumml/config-forge/releases/download/v1.0.0/config-forge.mp4)
 
 ## 快速开始
 
