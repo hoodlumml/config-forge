@@ -10,6 +10,11 @@
 - **云端可选**：在网页「设置」里填入 DeepSeek / OpenAI 兼容端点的 Key 即可切换。
 - **模板化**：内置交换机接入层（`switch/access`）等模板，支持版本化管理与工作室编辑。
 
+## 介绍视频
+
+- 演示视频（31MB）：[点击观看 config-forge.mp4](https://github.com/hoodlumml/config-forge/releases/download/v1.0.0/config-forge.mp4)
+- 也可在 [Releases](../../releases) 页面直接内嵌播放。
+
 ## 快速开始
 
 ### 方式一：便携包（推荐普通用户）
