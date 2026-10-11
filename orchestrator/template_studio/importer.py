@@ -20,6 +20,41 @@ from engine import SECTION_RE, slugify
 
 STACK_MEMBER_RE = re.compile(r"if\s*\{\{\s*stack\s*member\s*\}\}\s*==\s*(\d+)", re.I)
 
+# ---------------- 中文段名的模板名兜底（2026-10-10） ----------------
+# engine.slugify 只保留 [a-zA-Z0-9]，中文会被全部剥掉再 fallback 成字面量 "var"：
+#     '设备基线' -> 'var'    'VLAN 配置' -> 'vlan'
+#     '接入端口' -> 'var'    '上行互联' -> 'var'
+# 于是一份多段正文里所有中文段都叫 var，**互相覆盖成 v1.0→v1.1→v1.2**，
+# 批量导入直接失效（4 段只出 2 个模板）。
+# 官方 17 个模板都是英文名，所以这个 bug 一直没暴露；中文段名一用就中招。
+# engine 是 CG 只读依赖不能改，所以在本地做确定性兜底：中文取拼音无法实现，
+# 改用「保留 ASCII + 中文段序号」保证唯一且可读。
+_TPL_NAME_RE = re.compile(r"[^a-zA-Z0-9]+")
+_CJK_RE = re.compile(r"[\u4e00-\u9fff]+")
+
+
+def _template_name(title, seq=1, total=0):
+    """段标题 -> 英文标识模板名（中文段名安全）。
+
+    规则：
+      ① 标题里能提取到 ASCII（英文/数字）就用它（与旧行为一致，如 'VLAN 配置' -> 'vlan'）
+      ② 提不到（纯中文）就用 `tpl_<段序号>`，并附短哈希防撞名
+      ③ 一律避免返回 engine 的 fallback 值 'var'——那不是有效标识
+    """
+    base = _TPL_NAME_RE.sub("_", str(title or "")).strip("_").lower()
+    # 纯中文（ASCII 部分为空）或整体无效 -> 生成可区分的名字
+    if not base or base == "var":
+        import hashlib
+        h = hashlib.sha256(str(title or "").encode("utf-8")).hexdigest()[:4]
+        base = "tpl_%02d_%s" % (seq, h)
+    return base
+
+
+def _template_label(title, seq=1, total=0):
+    """显示名称：中文段名直接用原文（人看得懂），不做剥离。"""
+    t = str(title or "").strip()
+    return t or ("段落%d" % seq)
+
 
 # ---------------- 颜色解析（RGB / 主题色 / 索引色） ----------------
 
@@ -306,7 +341,7 @@ def import_sections(sections, io_hooks, library):
     client = str(ask("客户名称 (如 华为/华三, 留空=未分组)", default="") or "").strip()
     written = []
 
-    for sec in sections:
+    for sec_idx, sec in enumerate(sections, 1):
         body_text = section_to_template_text(sec["lines"])
         new_fp = fingerprint_styles(sec.get("col_widths", {}), sec.get("styles", []))
         out(f"\n=== 段落: {sec['title']} ({sec['type']}) ===")
@@ -319,8 +354,9 @@ def import_sections(sections, io_hooks, library):
         if not yes_no("导入该段落吗", True):
             continue
 
-        name = ask("模板名(英文标识)", default=slugify(sec["title"]))
-        label = ask("显示名称", default=sec["title"])
+        # 中文段名兜底：engine.slugify 会把纯中文剥成 'var'，导致多段互相覆盖
+        name = ask("模板名(英文标识)", default=_template_name(sec["title"], sec_idx, len(sections)))
+        label = ask("显示名称", default=_template_label(sec["title"], sec_idx, len(sections)))
         cat = ask("分类", default=category)
         entry = library.find_entry(idx, cat, name)
         # 已有条目时允许改挂客户（留空表示移到未分组）；模板名禁止含 "@"——
@@ -393,11 +429,12 @@ def import_sections(sections, io_hooks, library):
 
 # ---------------- 段落状态检测（解析预览用） ----------------
 
-def section_status(sec, cat, library, idx=None):
+def section_status(sec, cat, library, idx=None, seq=1):
     """对比模板库，返回 (状态, entry)：
     新增 / 内容有变化 / 样式有变化 / 无变化"""
     idx = idx or library.load_index()
-    name = slugify(sec["title"])
+    # 与 import_sections 用同一个命名口径（中文段名兜底），否则预览结论与实际入库不一致
+    name = _template_name(sec["title"], seq)
     entry = library.find_entry(idx, cat, name)
     if not entry:
         return "新增", None

@@ -1,7 +1,7 @@
 """跨平台本地 Web 服务（仅标准库，任意 OS 的 Python 3 直接跑）。
 
 启动：  python app.py
-演示：  浏览器打开 http://localhost:18000
+演示：  浏览器打开 http://localhost:8000
 
 本服务集成两层：
 1. LLM 调度层（llm.py）：自动/手动模式，手动模式强制只调本地模型（dsh）。
@@ -27,7 +27,7 @@ CONFIG_PATH = BASE_DIR / "config.json"
 LOCAL_CONFIG_PATH = BASE_DIR / "config.local.json"
 INDEX_PATH = BASE_DIR / "index.html"
 
-# CONFIG FORGE 引擎目录（自包含包内 vendored 副本：同包的 engine_runtime/）
+# CONFIG FORGE 工程目录（只读依赖，引擎经其子进程调用）
 CG_DIR = BASE_DIR.parent / "engine_runtime"
 
 
@@ -58,6 +58,28 @@ orchestrator = llm_module.build_orchestrator(cfg)
 
 
 # ---------------- CONFIG FORGE 辅助（仅读库，无需 openpyxl） ----------------
+
+_SEAM_GUARD = None
+_SCALE_HINT = None
+
+
+def _seam_guard():
+    """加载 template_studio.seam_guard（模板正文保真校验，纯函数、无副作用）。"""
+    global _SEAM_GUARD
+    if _SEAM_GUARD is None:
+        from template_studio import seam_guard
+        _SEAM_GUARD = seam_guard
+    return _SEAM_GUARD
+
+
+def _scale_hint():
+    """加载 template_studio.scale_hint（导入材料规模评估）。"""
+    global _SCALE_HINT
+    if _SCALE_HINT is None:
+        from template_studio import scale_hint
+        _SCALE_HINT = scale_hint
+    return _SCALE_HINT
+
 
 def _norm_ws(text):
     """命令区文本归一：NBSP/全角空格/零宽字符 → 半角空格/删除。
@@ -156,10 +178,14 @@ def _join_unique_name(name, client):
 def _resolve_client_templates(official, local, client):
     """按客户视角解析模板集，返回 [(条目, 是否顶替官方同名), ...]。
 
-    - 该客户的条目顶替同名官方条目（覆盖键仍是 (category,name)，与引擎查找键一致）
-    - 其他客户的条目不可见（客户之间互不干扰）
-    - 该客户未覆盖的官方条目照常保留
-    - client 为空（未分组/全部）：官方 + 未分组本地条目，保持旧行为
+    ⚠️ 2026-10-11 改为**严格隔离**（用户要求）：
+    「手动选了客户就只用该客户的模板生成配置，不要混官方库」。
+
+    - client 非空 → **只返回该客户的条目**，官方库一条都不并入
+      （此前会并入官方底座，导致界面上混着 17 条与该客户无关的模板、
+        用户不知道实际会用哪条；且一旦客户模板分属不同分类，跨分类取模板会失败）
+    - client 为空 → 保持原行为：官方 + 未分组本地条目
+    - 客户之间互不可见
     """
     if not client:
         items, seen = [], set()
@@ -173,15 +199,8 @@ def _resolve_client_templates(official, local, client):
         return items
 
     mine = [e for e in local if _studio_client(e) == client]
-    mine_by_key = {(e["category"], e["name"]): e for e in mine}
-    items = []
-    for e in official:
-        if (e["category"], e["name"]) in mine_by_key:
-            continue  # 被该客户覆盖，跳过官方版
-        items.append((e, False))
-    for e in mine:
-        items.append((e, True))  # 客户版顶替官方位置
-    return items
+    # 严格隔离：只给该客户自己的条目，官方底座不再并入
+    return [(e, True) for e in mine]
 
 
 def _tpl_item_for_client(lib, entry, override=False):
@@ -204,6 +223,76 @@ def _tpl_item_for_client(lib, entry, override=False):
         if prompts:
             item["prompts"] = prompts
     return item
+
+
+def detect_cross_category(spec, client=""):
+    """检测 spec 里「设备级 category 与模板实际分类不一致」的情况。
+
+    数据模型的限制：一个 device 只有一个 category，引擎按**设备级** category 去找
+    每个模板。于是当一台设备要同时用不同分类的模板时（例如 WLC 用
+    `WLC/WLC-9800` 的 RF 模板 + `switch/access` 的 upgrade_configuration），
+    后者会被去错误的分类下找，抛「模板未找到」/ NoneType.strip。
+
+    这里只做**识别与提示**，不改变任何行为（2026-10-11 用户要求：先给提示）。
+    返回人话提示列表；无问题返回 []。
+    """
+    out = []
+    # ⚠️ 必须查**全库**（不带 client）：客户隔离后 `list_templates("AAA")` 里
+    # 根本没有官方的 upgrade_configuration，若按客户查会静默漏报 —— 而这恰恰
+    # 正是要提示的场景（用户把官方模板写进了 spec，但设备分类是 WLC）。
+    # 查全库才能拿到每个模板的**真实归属分类**。
+    try:
+        tpls = list_templates("")
+    except Exception:
+        try:
+            tpls = list_templates(client)
+        except Exception:
+            return out
+    # name -> category（唯一名解码后比对，避免 xxx@客户 形态对不上）
+    cat_of = {}
+    for t in tpls:
+        nm = str(t.get("name") or "")
+        real = _split_unique_name(nm)[0] if CLIENT_SEP in nm else nm
+        cat_of.setdefault(real, t.get("category"))
+    for dev in (spec or {}).get("devices", []) or []:
+        if not isinstance(dev, dict):
+            continue
+        dev_cat = str(dev.get("category") or "").strip()
+        for tpl in dev.get("templates") or []:
+            if not isinstance(tpl, dict):
+                continue
+            nm = str(tpl.get("name") or "")
+            real = _split_unique_name(nm)[0] if CLIENT_SEP in nm else nm
+            want = cat_of.get(real)
+            if want and dev_cat and want != dev_cat:
+                out.append({
+                    "hostname": dev.get("hostname", ""),
+                    "device_category": dev_cat,
+                    "template": nm,
+                    "template_category": want,
+                })
+    return out
+
+
+def cross_category_hint(items):
+    """把 detect_cross_category 的结果拼成给用户看的一句话/一段话。"""
+    if not items:
+        return ""
+    dev_cat = items[0]["device_category"]
+    lines = ["⚠️ 检测到跨分类模板，当前数据模型不支持，会生成失败：", ""]
+    lines.append("   设备分类：%s" % dev_cat)
+    for it in items:
+        lines.append("   · 模板「%s」实际属于 %s"
+                     % (it["template"], it["template_category"]))
+    lines += [
+        "",
+        "   原因：一台设备只能设一个分类，引擎会拿「%s」去找所有模板。" % dev_cat,
+        "   办法（任选一种）：",
+        "   1) 把该模板复制到 %s 分类下（模板工作室 → 客户管理 → 复制官方模板），" % dev_cat,
+        "      改完后它在 %s 下就有自己的版本了；" % dev_cat,
+        "   2) 或拆成两台设备分别生成（各自设自己的分类），再合并 Excel。",
+    ]
+    return "\n".join(lines)
 
 
 def list_templates(client=""):
@@ -443,6 +532,12 @@ def _body_vs_commands(cmd_text, body):
 
     判「截断」不靠行数（AI 归并 @repeat 会让行数本来就不齐），
     而看原文末尾 3 条命令还有没有落在正文里——被掐断时它们一条都找不到。
+
+    ⚠️【2026-10-10 已下线，函数保留未删】调用点已注释。改用
+    template_studio/seam_guard.check()：它做**双向**比对（extra/missing/reorder），
+    能拦下本函数漏掉的「幻觉命令 / 换顺序 / 改写法」，且在本函数会拦的每个场景里
+    都给出精确到行的结论，而本函数只给一个不准的缺命令百分比、还会抢先拦下。
+    本函数保留仅为留档与回归对照。
     """
     cmds = [ln.strip() for ln in cmd_text.splitlines()
             if ln.strip() and not ln.lstrip().startswith("!")]
@@ -561,6 +656,13 @@ def _resolve_spec_names(spec):
     幂等：已是真名的原样透传，因此「未选客户」与旧流程行为完全一致。
     解码失败不在这里静默吞掉——真实模板缺失交给引擎报「模板未找到」，
     这样用户能看到引擎的原始报错，而不是被 app.py 改写过的假信息。
+
+    ⚠️ 必须同时解码 **`data` 的键**（2026-10-10 修）：
+    前端展示的 spec 里 data 键带客户后缀（`stack_configuration@华为`），
+    与 templates[].name 一一对应。若只解码 name 不解码 data 键，
+    引擎侧 `dev_data.get(t["name"])` 会取不到 -> 退回整个 data -> 空壳 ->
+    **参数化段（stack_config/stack_picture）渲染成 0 行**，
+    表现为「Excel 里该段标题在、内容全空」，而 normal 段却正常（不依赖 data 取值）。
     """
     if not isinstance(spec, dict):
         return spec
@@ -575,6 +677,14 @@ def _resolve_spec_names(spec):
             if isinstance(tpl, dict) and isinstance(tpl.get("name"), str):
                 real, _c = _split_unique_name(tpl["name"])
                 tpl["name"] = real
+        # 同步解码 data 的键：'xxx@客户' -> 'xxx'
+        dd = dev.get("data")
+        if isinstance(dd, dict):
+            for k in list(dd.keys()):
+                if isinstance(k, str) and CLIENT_SEP in k:
+                    real_k, _ = _split_unique_name(k)
+                    if real_k != k and real_k not in dd:   # 真名未被占用才改写
+                        dd[real_k] = dd.pop(k)
     return spec
 
 
@@ -719,6 +829,8 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_skill_plan_draft(data)
         elif parsed.path == "/api/template/draft":
             self._handle_template_draft(data)
+        elif parsed.path == "/api/template/scale":
+            self._handle_template_scale(data)
         elif parsed.path == "/api/template/verify":
             self._handle_template_verify(data)
         elif parsed.path == "/api/template/commit":
@@ -731,6 +843,8 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_template_fork(data)
         elif parsed.path == "/api/client/add":
             self._handle_client_add(data)
+        elif parsed.path == "/api/client/delete":
+            self._handle_client_delete(data)
         elif parsed.path == "/api/config":
             self._handle_config(data)
         elif parsed.path == "/api/provider/test":
@@ -801,16 +915,23 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(502, {"error": f"规划结果无法解析: {e}", "raw": text})
             return
         used = spec_clients(spec) or ([data.get("client", "")] if data.get("client") else [])
+        # 跨分类检测：**只提示、不阻断**（2026-10-11 修正）——
+        # 此前命中时在这里提前 return，导致跳过了下面的 config_forge.run()，
+        # 结果「规划完不出 Excel」。现在把提示挂进正常返回里，生成照常进行。
+        cross = cross_category_hint(detect_cross_category(spec, used[0] if used else ""))
         try:
             run_spec = _resolve_spec_names(spec)
             result = config_forge.run(run_spec)
         except Exception as e:
             self._send_json(502, {"error": f"CONFIG FORGE 执行失败: {e}", "spec": spec})
             return
-        self._send_json(200, {
+        payload = {
             "provider": provider.name, "kind": provider.kind,
             "spec": spec, "output": result.get("output"), "clients": used,
-        })
+        }
+        if cross:
+            payload["cross_category"] = cross
+        self._send_json(200, payload)
 
     # ---- CONFIG FORGE：一句话 → LLM 规划 → 返回草稿（不执行，等用户确认） ----
     def _handle_skill_plan_draft(self, data):
@@ -931,6 +1052,37 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     # ---- 模板工作室 ①：AI 生成模板草稿（不落盘） ----
+    def _handle_template_scale(self, data):
+        """只做规模评估（xlsx 需要 openpyxl 解析，普通 python 跑不了）。"""
+        kind = data.get("kind") or "xlsx"
+        try:
+            if kind == "xlsx":
+                import base64
+                import tempfile
+                from pathlib import Path
+                b64 = data.get("file_b64") or ""
+                if not b64:
+                    self._send_json(400, {"error": "缺少 xlsx 内容"})
+                    return
+                tmp = Path(tempfile.gettempdir()) / "tpl_studio_scale.xlsx"
+                tmp.write_bytes(base64.b64decode(b64))
+                _secs = _xlsx_sections(str(tmp))
+                cmd_text = _sections_to_commands(_secs)
+            else:
+                cmd_text = _norm_ws(data.get("content") or "")
+        except Exception as e:
+            self._send_json(400, {"error": f"解析失败: {e}"})
+            return
+        payload = _scale_hint().assess(cmd_text.splitlines())
+        # 【导入须知·2026-10-11】顺手做一次「表格体检」，把实测过的边界直接告诉用户，
+        # 而不是只在界面上写静态说明。静态说明是「规则」，这里是「你这份表的情况」。
+        if kind == "xlsx":
+            try:
+                payload["xlsx_check"] = _xlsx_doctor(str(tmp))
+            except Exception as e:
+                print("表格体检失败（不影响评估）:", e)
+        self._send_json(200, payload)
+
     def _handle_template_draft(self, data):
         kind = data.get("kind") or "text"
         requirement = (data.get("requirement") or "").strip()
@@ -951,8 +1103,29 @@ class Handler(BaseHTTPRequestHandler):
                 tmp.write_bytes(base64.b64decode(b64))
                 sections = _xlsx_sections(str(tmp))
                 cmd_text = _sections_to_commands(sections)
+                # 【格式保真·暂存（2026-10-11）】xlsx 才带样式。sections 结构是
+                # list[dict]（read_xlsx_sections 返回），逐段把 styles/col_widths 存起来，
+                # ③入库时凭 token 取回贴到 _body_to_sections 的结果上。
+                # 纯文本导入不走这里，行为完全不变。
+                xs_token = ""
+                try:
+                    _st, _cw = [], {}
+                    for _sec in (sections if isinstance(sections, list) else [sections]):
+                        _st.append({"styles": _sec.get("styles") or [],
+                                    "lines": len(_sec.get("lines") or [])})
+                        _cw.update(_sec.get("col_widths") or {})
+                    _flat = []
+                    for _one in _st:
+                        _flat.extend(_one["styles"])
+                    if _flat:
+                        xs_token = _style_cache_put(_flat, _cw)
+                except Exception as e:
+                    # 样式暂存失败**不阻断导入**：模板正文照样能生成，只是没样式
+                    print("样式暂存失败（不影响导入）:", e)
+                    xs_token = ""
             else:
                 cmd_text = _norm_ws(data.get("content") or "").strip()
+                xs_token = ""      # 纯文本无样式可暂存
         except Exception as e:
             self._send_json(400, {"error": f"输入解析失败: {e}"})
             return
@@ -962,6 +1135,10 @@ class Handler(BaseHTTPRequestHandler):
         if not category:
             self._send_json(400, {"error": "缺少分类（格式如 switch/access）"})
             return
+        # 【规模评估（2026-10-10）】用户导入的常常是「一整台交换机的配置模板」，
+        # 几百行。规模过大时 LLM 输出会被截断、注意力失焦，这是**工程问题**，
+        # 与保真校验拦的「AI 改写内容」是两回事。先量规模，供前端提示与拦截解释共用。
+        scale = _scale_hint().assess(cmd_text.splitlines())
         prompt = _build_template_prompt(cmd_text, requirement, category, name, label)
         try:
             provider, text = orchestrator.complete(
@@ -997,18 +1174,24 @@ class Handler(BaseHTTPRequestHandler):
             return
         # 截断/漏命令护栏（真实 Core switch 表自检抓到）：兜底解包只能救回截断的前半段，
         # 后半段命令静默消失、引擎校验照样 passed。用「原文末尾命令还在不在正文里」判截断。
-        try:
-            tail_cut, gap_rate, gap_sample = _body_vs_commands(cmd_text, body)
-            if tail_cut or gap_rate > 0.25:
-                self._send_json(502, {
-                    "error": "模型输出疑似被截断/漏命令（正文缺了约 %.0f%% 的命令，"
-                             "如 %s）。长表容易触发，请点「重新生成」；若反复出现，"
-                             "改用「按段落分批导入」或拆成小表。"
-                             % (gap_rate * 100, (gap_sample or ["（见原文末尾）"])[0][:60]),
-                })
-                return
-        except Exception:
-            pass
+        #
+        # 【2026-10-10 已下线，改为注释保留】原因：双向保真校验（seam_guard，见下）已完全
+        # 覆盖本函数的全部判据（实测 11 类输入「旧独有拦截 = 0」），且本函数会**抢先拦截**：
+        # 截断类场景下它先返回「缺约 36%」这种不准的百分比，用户就拿不到 seam 给的
+        # 「漏掉原文命令 4 条，例：xxx」这种精确到行的结论。留着反而挡路。
+        # 函数本身保留在下方（未删除），需要时可恢复调用。
+        # try:
+        #     tail_cut, gap_rate, gap_sample = _body_vs_commands(cmd_text, body)
+        #     if tail_cut or gap_rate > 0.25:
+        #         self._send_json(502, {
+        #             "error": "模型输出疑似被截断/漏命令（正文缺了约 %.0f%% 的命令，"
+        #                      "如 %s）。长表容易触发，请点「重新生成」；若反复出现，"
+        #                      "改用「按段落分批导入」或拆成小表。"
+        #                      % (gap_rate * 100, (gap_sample or ["（见原文末尾）"])[0][:60]),
+        #         })
+        #         return
+        # except Exception:
+        #     pass
         # 解包后还是 JSON 外壳 = 兜底也没救回来，直接拦住，别把一坨 JSON 推给用户
         bhead = body.strip()
         if bhead.startswith("{") and '"body"' in bhead[:120]:
@@ -1017,9 +1200,40 @@ class Handler(BaseHTTPRequestHandler):
                 "raw": body[:300],
             })
             return
+        # 【保真校验（双向，2026-10-10）】旧护栏 _body_vs_commands 只做「原文每条是否
+        # 出现在正文里」的单向字面包含判断（阈值 25%），于是：漏一条不拦、幻觉命令
+        # 永不拦、换顺序不管、改写法不管。这里用 seam_guard 做确定性双向比对：
+        # extra（AI 创作）/ missing（漏命令）/ reorder（换序）任一命中即拒。
+        # 归并 @repeat 时条数本就可比性下降，seam_guard 会自动降级为「命令词干」比对。
+        seam = _seam_guard().check(cmd_text.splitlines(), body)
+        if not seam["ok"]:
+            # seam["reason"] 已包含「原文第几行 + 那行内容」的定位示例，这里不再重复堆 token
+            extra_hint = []
+            if seam["degraded"]:
+                extra_hint.append("该正文含 @repeat/@choice 归并块，已按「命令词干」比对，"
+                                  "归并本身不算错，但整条命令被吞掉仍算错")
+            if seam["reordered"]:
+                extra_hint.append("命令顺序必须与原文一致（先建 VLAN 再配 interface 等）")
+            self._send_json(502, {
+                "error": "模板正文与命令原文不一致，已拦下：%s。%s"
+                         % (seam["reason"], "；".join(extra_hint) + "。" if extra_hint else "")
+                         + _scale_hint().explain_reject(scale, ""),
+                "seam": {"extra": seam["extra"][:5], "missing": seam["missing"][:5],
+                         "reordered": seam["reordered"], "degraded": seam["degraded"]},
+                "scale": scale,
+                "raw": body[:300],
+            })
+            return
         self._send_json(200, {
             "provider": provider.name, "kind": provider.kind,
-            "draft": {"body": body, "changes": changes, "uncovered": uncovered},
+            "scale": scale,
+            # xs_token：xlsx 导入时下发，③入库时带回以恢复源表样式（纯文本时为空串）
+            "xs_token": xs_token,
+            "draft": {"body": body, "changes": changes, "uncovered": uncovered,
+                      "seam_checked": True, "seam_degraded": seam["degraded"],
+                      "scale": scale,
+                      # 原文回传给前端：用户手改正文后，②校验才能对改后的正文复检
+                      "orig_content": cmd_text},
         })
 
     # ---- 模板工作室 ②：运行校验（硬校验=引擎，软提醒=规则扫描） ----
@@ -1030,6 +1244,23 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": "模板正文不能为空"})
             return
         hard, soft = [], []
+        # 【保真校验·复检（2026-10-10）】用户可在草稿之后手改正文（UI 明确允许手改）。
+        # 前端把原始命令原文一并带上，方便对改过的正文重新做双向保真比对；
+        # 没带原文（老流程/手填无原文）时跳过，不阻塞。
+        cmd_orig = data.get("orig_content") or ""
+        seam_info = None
+        if cmd_orig.strip():
+            seam = _seam_guard().check(_norm_ws(cmd_orig).splitlines(), body)
+            seam_info = {"ok": seam["ok"], "reason": seam["reason"],
+                         "degraded": seam["degraded"],
+                         "extra": seam["extra"][:5], "missing": seam["missing"][:5],
+                         "reordered": seam["reordered"]}
+            if not seam["ok"]:
+                # reason 已自带「原文第N行「...」」的定位示例
+                hint = "（该正文含 @repeat/@choice 归并块，已按命令词干比对）" if seam["degraded"] else ""
+                hard.append({"level": "error",
+                             "msg": "命令保真校验不通过：%s%s"
+                                    % (seam["reason"], hint)})
         engine = _cg_modules()[1]
         try:
             sections = _body_to_sections(body)
@@ -1048,8 +1279,16 @@ class Handler(BaseHTTPRequestHandler):
             hard.append({"level": "error",
                          "msg": "模板正文里的换行全被转义成了字面 \\n，引擎只会把它当一整行。"
                                 "请生成真实换行的正文后再校验。"})
+        # 段名 `! --- X ---` 是**可选**的，引擎对无段名模板照样能渲染。
+        # CG 官方库 17 个模板**全部没有段名**（实测），所以缺段名不是错误，
+        # 只提示「不分段时 Excel 里会是一整块、不好定位」。
+        # 2026-10-10 修正：此前把它当 hard 阻塞，导致改任何官方模板都存不进去。
         if "! ---" not in body:
-            hard.append({"level": "error", "msg": "未找到 `! --- 段名 ---` 段落分隔行"})
+            soft.append({"level": "warn",
+                         "msg": "正文里没有 `! --- 段名 ---` 分隔行。"
+                                 "这不影响使用（官方模板也都没有段名），"
+                                 "但生成 Excel 时整段会连在一起，不好定位命令；"
+                                 "如需分段可自行加上。"})
         if body.count("! @repeat") + body.count("! @choice") != body.count("! @end"):
             hard.append({"level": "error", "msg": "@repeat/@choice 与 @end 数量不配对（块缺 @end 会吞掉后续配置行）"})
         if "｛" in body or "｝" in body:
@@ -1106,6 +1345,7 @@ class Handler(BaseHTTPRequestHandler):
             "variables": sorted(set(vars_found)),
             "sections": [s["title"] for s in sections],
             "smoke_ok": smoke_ok, "smoke_error": smoke_err,
+            "seam": seam_info,
             "passed": not [h for h in hard if h["level"] == "error"],
         })
 
@@ -1124,11 +1364,36 @@ class Handler(BaseHTTPRequestHandler):
         if not category:
             self._send_json(400, {"error": "缺少分类"})
             return
+        # 【防绕过（2026-10-10）】正文保真由 seam_guard 在 draft / verify 两处把关。
+        # 前端把 ②校验 的结论回传；若声明「已过校验」却缺少 ②的通过标记，
+        # 说明是绕过前端直接构造的请求 -> 拒。
+        # 兼容口径：手填正文（无 orig_content 可比）时前端不声明 seam_ok，也放行，
+        # 因为它在②校验时已被引擎 + 保真（若带原文）校验过。
+        if data.get("seam_ok"):
+            pass          # 前端声明通过了②，含保真；正常路径
+        elif data.get("seam_bad"):
+            self._send_json(400, {
+                "error": "命令保真校验未通过，拒绝入库。请在「②校验」处改正后复检，"
+                         "或点「①重新生成」让 AI 重新包装。"
+            })
+            return
         try:
             sections = _body_to_sections(body)
         except Exception as e:
             self._send_json(502, {"error": f"模板解析失败: {e}"})
             return
+        # 【格式保真·还原（2026-10-11）】_body_to_sections 走 read_txt_sections，
+        # 样式位置全是空（importer.py:192）。这里把 ①导入时暂存的源表样式贴回去：
+        # lines 仍用 AI 包装后的（AI 可能改命令），只补 styles / col_widths。
+        style_note = ""
+        try:
+            _cached = _style_cache_get(data.get("xs_token") or "")
+            if _cached:
+                sections, style_note = _apply_cached_styles(sections, _cached)
+        except Exception as e:
+            # 样式还原失败**不阻断入库**：模板照样能建，只是没源表样式
+            print("样式还原失败（不影响入库）:", e)
+            style_note = ""
         imp, lib = _studio_importer(), _studio_library()
         report = []
 
@@ -1160,7 +1425,8 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             self._send_json(502, {"error": f"入库失败: {e}"})
             return
-        self._send_json(200, {"report": "\n".join(report), "written": [str(d) for d, _ in written]})
+        self._send_json(200, {"report": "\n".join(report), "written": [str(d) for d, _ in written],
+                           "style_note": style_note})
 
     # ---- 模板工作室 ④：模板管理（改正文 → 存新版本 / 删模板） ----
     # 官方库（CG 自带）是只读基准，只能看；本地库（工作室自有）才能改能删。
@@ -1197,6 +1463,15 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": str(e)})
         except Exception as e:
             self._send_json(502, {"error": f"新建客户失败: {e}"})
+
+    # ---- 删除客户（清该客户模板 + 移出 clients）----
+    def _handle_client_delete(self, data):
+        try:
+            self._send_json(200, _client_delete(data))
+        except ValueError as e:
+            self._send_json(400, {"error": str(e)})
+        except Exception as e:
+            self._send_json(502, {"error": f"删除客户失败: {e}"})
 
 
 # ---------------- 模板工作室（模板导入能力） ----------------
@@ -1362,6 +1637,104 @@ def _template_save(data):
 
 
 # ---- 新建客户（写入 config.json 的 clients，手动维护口径；函数体在类外的模块区） ----
+
+
+def _client_delete(data):
+    """删除客户：清掉该客户在本地库的全部模板 + 从 config.json 的 clients 移除。
+
+    两处数据要一起清，否则会留下「幽灵客户」：
+      ① config.json 的 clients 数组   —— 客户下拉框的数据源
+      ② template_studio/library/ 的模板目录与 index.json 登记
+
+    与 _template_delete 同源的护栏（**删除操作必须带**）：
+      - 越权护栏：只允许删 LIBRARY_DIR 之下的目录
+      - 共享目录保护：同一 (category,name) 可能存在多个客户版本共存，
+        只有当该 (category,name) 已无任何其他客户登记时才删物理目录，
+        否则会连带删掉别的客户的模板
+      - 空壳收尾：从深到浅逐级清理空目录，别在盘上留空壳
+
+    mode 参数：
+      purge=false（默认）—— 只清模板登记 + 移出 clients（模板目录保留为孤儿）
+      purge=true         —— 连物理目录一并删除（真正清干净）
+    """
+    client = _safe_name(data.get("client"))
+    if not client:
+        raise ValueError("请指定要删除的客户")
+    purge = bool(data.get("purge"))
+
+    lib = _library_by_source("local")
+    idx = lib.load_index()
+    root = Path(lib.LIBRARY_DIR).resolve()
+
+    # ---- 收集该客户全部条目 ----
+    mine = [e for e in idx.get("templates", []) if _studio_client(e) == client]
+    # 安全阀：客户名下没有任何模板时也允许删（纯客户条目），但要如实告知
+    removed_tpls, kept_dirs = [], []
+
+    for entry in mine:
+        cat, name = entry.get("category"), entry.get("name")
+        # 还有没有其他客户在用同一个 (category,name)？有就别动物理目录。
+        siblings = [e for e in idx.get("templates", [])
+                    if e is not entry and e.get("category") == cat and e.get("name") == name]
+        if purge and not siblings:
+            for v in entry.get("versions", []):
+                d_res = Path(lib.version_dir(entry, v["version"])).resolve()
+                if d_res != root and root not in d_res.parents:
+                    raise ValueError("拒绝删除越权路径: %s" % d_res)
+                if d_res.exists():
+                    shutil.rmtree(str(d_res))
+                    removed_tpls.append(
+                        ("%s/%s/%s" % (cat, name, v["version"])).replace("\\", "/"))
+        else:
+            kept_dirs.append("%s/%s%s" % (cat, name,
+                                 "（与其他客户共享，未删目录）" if siblings else "（未选择清理目录）"))
+        # 无论是否删目录，都要把本客户的登记摘掉
+        idx["templates"].remove(entry)
+
+    # ---- 收空壳（从深到浅）----
+    def _empty_and_inside(d):
+        d = Path(d)
+        if not d.exists():
+            return False
+        if d.resolve() != root and root not in d.resolve().parents:
+            return False
+        return not any(d.iterdir())
+
+    if purge:
+        # 先摘登记再扫一遍：目录已空但登记还在的不用管；登记摘了但目录还空壳的补清
+        for cur in sorted(root.rglob("*"), key=lambda p: len(p.parts), reverse=True):
+            if cur.is_dir() and _empty_and_inside(cur):
+                shutil.rmtree(str(cur.resolve()))
+        # 最顶层空目录（分类目录）再收一次
+        for cur in sorted(root.rglob("*"), key=lambda p: len(p.parts), reverse=True):
+            if cur.is_dir() and _empty_and_inside(cur):
+                shutil.rmtree(str(cur.resolve()))
+
+    lib.save_index(idx)
+
+    # ---- 从 config.json 的 clients 移除 ----
+    removed_client = False
+    try:
+        cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        cfg = {}
+    clients = cfg.get("clients")
+    if isinstance(clients, list) and client in [str(c).strip() for c in clients]:
+        cfg["clients"] = [c for c in clients if str(c).strip() != client]
+        CONFIG_PATH.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
+        removed_client = True
+
+    return {
+        "client": client,
+        "removed_client": removed_client,
+        "removed_templates": removed_tpls,
+        "template_count": len(mine),
+        "kept_dirs": kept_dirs,
+        "purge": purge,
+        "clients": cfg.get("clients") if isinstance(cfg.get("clients"), list) else [],
+        # 该客户在 clients 里但本地库没模板（或压根不存在）——如实告知，别让用户以为删了
+        "not_found": (not mine) and (not removed_client),
+    }
 
 
 def _client_add(data):
@@ -1628,8 +2001,180 @@ def _body_to_sections(body):
     return _studio_importer().read_txt_sections(str(tmp))
 
 
+# ================= 样式暂存（格式保真 · 2026-10-11）=================
+# 问题：①导入 xlsx 时 `_xlsx_sections()` 解析出的 styles 完整，但 ③入库走
+#      `_body_to_sections(body)` -> read_txt_sections()，后者在 importer.py:192
+#      把样式位置硬编码为空 —— **样式在「导入 → 入库」之间没有任何通道**，于是
+#      存出来的 styles.json 全空（实测 col_widths {}、line_styles[i].a == {}），
+#      最终输出 xlsx 变成 Calibri / 无底色 / 无边框 / 列宽默认 55·45。
+#
+# 方案 A（用户选定）：①解析后把 styles+col_widths 暂存在服务端，下发 token；
+#                 ③入库时凭 token 取回，与 _body_to_sections 的结果合并。
+# 为什么放服务端而不是前端回传：样式有 11KB 量级（30 行表），放 localStorage 是负担，
+# 且用户清浏览器数据/换机器就丢且无从察觉；服务端缓存随进程重启消失，不留脏数据。
+#
+# 边界（刻意保守，避免"看起来对但悄悄错位"）：
+#   · lines 一律用 AI 包装后的（AI 可能改命令），styles **按行数顺序对齐**
+#   · 行数不一致时**如实告知**未匹配行数，绝不静默截断、绝不编造样式
+#   · 纯文本导入（无 xlsx）不产生 token，走原逻辑，行为零变化
+_STYLE_CACHE = {}        # token -> {"styles": [...], "col_widths": {...}, "ts": float}
+_STYLE_CACHE_MAX = 32    # 最多缓存 32 次导入，超了丢最旧的
+_STYLE_CACHE_TTL = 3600  # 1 小时过期
+
+
+def _xlsx_doctor(path):
+    """表格体检：检查这张表会不会踩已知的坑（2026-10-11 实测确认）。
+
+    只报**实测复现过**的问题，不臆测。返回 {"ok": bool, "warns": [文案...], "info": [文案...]}。
+    """
+    warns, info = [], []
+    try:
+        from openpyxl import load_workbook
+    except Exception:
+        return {"ok": True, "warns": [], "info": ["（体检需要 openpyxl，跳过）"]}
+    try:
+        wb = load_workbook(path)
+    except Exception as e:
+        return {"ok": False, "warns": ["无法读取该文件：%s" % e], "info": []}
+
+    # 坑 1：只读第一个工作表（wb.active）—— 后面还有非空工作表就是隐患
+    sheets = wb.sheetnames
+    others = []
+    for nm in sheets[1:]:
+        w = wb[nm]
+        if any(c.value is not None and str(c.value).strip()
+               for row in w.iter_rows() for c in row):
+            others.append(nm)
+    if others:
+        warns.append("只读取第 1 个工作表「%s」，%s 里也有内容但会被忽略"
+                     % (sheets[0], "、".join("「%s」" % n for n in others)))
+    else:
+        info.append("只读取第 1 个工作表「%s」，后面的是空的，没问题" % sheets[0])
+
+    ws = wb[sheets[0]]
+    # 坑 2：C 列及以后有内容 -> 会被当注释拼到命令后面（可能污染命令正文）
+    extra_cols = []
+    for col in ("C", "D", "E", "F"):
+        if any(ws["%s%d" % (col, r)].value is not None
+               and str(ws["%s%d" % (col, r)].value).strip()
+               for r in range(1, min(ws.max_row, 200) + 1)):
+            extra_cols.append(col)
+    if extra_cols:
+        warns.append("%s 列有内容，会被当注释拼到命令后面（`命令 ## 注释`）。"
+                     "若这里不是注释（如填了检查项/时间），会混进命令正文，建议留空"
+                     % "、".join(extra_cols))
+    else:
+        info.append("只有 A、B 两列有内容，列结构没问题")
+
+    # 坑 3：分段标记只认 `! --- 段名 ---`；N 个标记 = N 个独立模板
+    import re as _re
+    seg = _re.compile(r"^!\s*-{2,}\s*(.+?)\s*-{2,}\s*$")
+    segs = []
+    for r in range(1, min(ws.max_row, 500) + 1):
+        v = ws["A%d" % r].value
+        if v is None:
+            continue
+        m = seg.match(str(v).strip())
+        if m:
+            segs.append(m.group(1))
+    if len(segs) > 1:
+        warns.append("表里有 %d 个 `! --- 段名 ---` 标记（%s…），"
+                     "**每个会生成一个独立模板**，不是合成一个"
+                     % (len(segs), "、".join(segs[:3])))
+    elif not segs:
+        info.append("没有分段标记，整张表会作为**一个**模板导入")
+    else:
+        info.append("有 1 个分段标记「%s」，会生成 1 个模板" % segs[0])
+
+    # 近似表头行（只含文字、非命令）—— 仅提醒，不阻断
+    hdr = None
+    for r in range(1, min(ws.max_row, 10) + 1):
+        a = ws["A%d" % r].value
+        if a is None:
+            continue
+        s = str(a).strip()
+        if s and not s.startswith("!") and not _looks_like_command(s):
+            hdr = (r, s[:28])
+            break
+    if hdr:
+        info.append("第 %d 行「%s」不像命令，会被当普通内容导入（如需删除请自行处理）"
+                    % (hdr[0], hdr[1]))
+
+    return {"ok": not warns, "warns": warns, "info": info}
+
+
+def _looks_like_command(s):
+    """粗判是否像一条 Cisco 命令：首词是小写单词/含关键字特征。"""
+    t = s.strip()
+    if not t:
+        return False
+    head = t.split()[0].lower()
+    kw = ("hostname", "interface", "vlan", "router", "ip", "line", "spanning",
+          "switchport", "no ", "do ", "show", "exit", "end", "reload", "write",
+          "configure", "boot", "install", "copy", "dir", "verify", "archive")
+    return head.startswith(kw) or head.islower()
+
+
+def _style_cache_put(styles, col_widths):
+    """存一次导入的样式，返回 token（供 ③入库时取回）。"""
+    import time
+    import uuid
+    now = time.time()
+    # 顺手清过期 + 超量：宁可丢缓存，也不要让内存无限涨
+    for k in [k for k, v in _STYLE_CACHE.items() if now - v["ts"] > _STYLE_CACHE_TTL]:
+        _STYLE_CACHE.pop(k, None)
+    while len(_STYLE_CACHE) >= _STYLE_CACHE_MAX:
+        oldest = min(_STYLE_CACHE, key=lambda k: _STYLE_CACHE[k]["ts"])
+        _STYLE_CACHE.pop(oldest, None)
+    token = uuid.uuid4().hex
+    _STYLE_CACHE[token] = {"styles": styles or [], "col_widths": col_widths or {},
+                           "ts": now}
+    return token
+
+
+def _style_cache_get(token):
+    """凭 token 取回样式；过期或不存在返回 None。**取一次即失效**（防重复使用同一份样式）。"""
+    import time
+    if not token:
+        return None
+    rec = _STYLE_CACHE.get(token)
+    if not rec:
+        return None
+    _STYLE_CACHE.pop(token, None)      # 一次性，避免陈旧样式被误用到别的模板
+    if time.time() - rec["ts"] > _STYLE_CACHE_TTL:
+        return None
+    return rec
+
+
+def _apply_cached_styles(sections, cached):
+    """把暂存的样式贴到 _body_to_sections 解析出的 sections 上。
+
+    只贴 styles / col_widths（lines 保持 AI 包装后的结果不变）。
+    按行数顺序对齐：styles[i] 对应 sections[i]。
+    返回 (sections, 提示文案)。提示文案非空 = 有行没匹配到样式，如实告知用户。
+    """
+    if not cached:
+        return sections, ""
+    styles = cached.get("styles") or []
+    col_widths = cached.get("col_widths") or {}
+    if not styles and not col_widths:
+        return sections, ""
+    note = ""
+    for sec in sections:
+        n = len(sec.get("lines") or [])
+        if n and styles:
+            take = styles[:n]
+            sec["styles"] = take
+            if len(take) < n:
+                note = ("源表样式 %d 行，本次正文 %d 行，末尾 %d 行没有对应样式"
+                        % (len(take), n, n - len(take)))
+        if col_widths:
+            sec["col_widths"] = col_widths
+    return sections, note
+
+
 def _xlsx_sections(path):
-    """xlsx 需 openpyxl：沿用 config_forge 的子进程套路，用包内 runtime/ 便携 Python 解析"""
+    """xlsx 需 openpyxl：沿用 config_forge 的子进程套路，用包内 runtime 的便携 Python 解析"""
     import json
     import subprocess
     venv = BASE_DIR.parent / "runtime" / "python.exe"
@@ -1669,6 +2214,12 @@ def _build_template_prompt(command_text, requirement, category, name, label):
         "改写时**去掉变量名前后的空格**（得到 `{{SNMP location}}`），变量名内部保留原文的空格/连字符。\n"
         "- 【需求描述】提到但【命令原文】没有对应命令的功能，不要自己写命令，只写进返回结果的 uncovered 字段。\n"
         "- 注释沿用命令原文里的注释（` ## ` 之后的内容），不要自造注释。\n"
+        "- 【顺序铁律】命令的先后顺序必须与【命令原文】完全一致，不要为了「看起来更合理」"
+        "而重排（如先建 VLAN 再配 interface、先建 ACL 再挂 SNMP）。\n"
+        "- 【原文里就有的字面值必须原样保留】原文里的具体 IP、主机名、community 字符串、"
+        "数字（如 `snmp-server host 111.111.111.111`、`snmp-server community public ro 77`）"
+        "都是现场既定值，**保持原样、不要抽成 {{变量}}**，也不要改写；"
+        "只有需求描述明确说「每次都不同」的值才抽成占位符。\n"
         "- 【body 写法铁律·违反即判失败】`body` 字段里必须是真实回车换行的配置行文本，直接把配置行填进去；"
         "严禁再把整个 JSON 套一层当作 body、严禁 body 以 `{` 开头、严禁在 body 里写 `\\n` 这类转义序列"
         "（换行就是真正的回车，一行一条命令），也严禁 body 里出现 markdown 代码块符号。\n"

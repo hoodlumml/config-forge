@@ -112,8 +112,6 @@ line vty 0 15
 logging synchronous
 password {{vty password}} ## Password
 transport input ssh
- authorization exec AAA
- login authentication AAA
 !
 banner login ^
 *******************************************************************************

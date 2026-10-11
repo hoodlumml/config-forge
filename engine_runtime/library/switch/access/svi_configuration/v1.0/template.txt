@@ -1,5 +1,5 @@
 interface Vlan1
-description *DO NOT USE*
+description NOT USE
 no ip address
 shutdown
 interface Vlan888

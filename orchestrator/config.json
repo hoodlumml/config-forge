@@ -43,7 +43,5 @@
     }
   ],
   "fallback_to_local": true,
-  "clients": [
-    "Customer1"
-  ]
+  "clients": []
 }

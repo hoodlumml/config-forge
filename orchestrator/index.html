@@ -247,8 +247,66 @@
   .tsList { margin:6px 0 10px; padding-left:20px; font-size:12.5px; color:var(--mut); font-family:var(--mono); }
   .tsList li { margin:3px 0; }
   .tsList.warn li { color:var(--warn-fg); }
+  /* 规模提示条：三档（正常/偏大/很大），颜色全走 token 不硬编码 */
+  .tsScale { border-radius:10px; padding:11px 13px; font-size:12.5px; line-height:1.65;
+    border:1px solid var(--line); background:var(--bg2); margin:2px 0 6px; }
+  .tsScale .tsS-head { font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .tsScale .tsS-badge { font-size:11.5px; padding:1px 8px; border-radius:20px; font-weight:600; }
+  .tsScale .tsS-num { font-family:var(--mono); font-size:12px; }
+  .tsScale .tsS-body { margin-top:6px; color:var(--mut); }
+  .tsScale.lv-ok    { border-left:3px solid var(--ok); }
+  .tsScale.lv-ok .tsS-badge { background:var(--ok-bg); color:var(--ok-fg); }
+  .tsScale.lv-large { border-left:3px solid var(--warn); }
+  .tsScale.lv-large .tsS-badge { background:var(--warn-bg); color:var(--warn-fg); }
+  .tsScale.lv-huge  { border-left:3px solid var(--danger); }
+  .tsScale.lv-huge .tsS-badge { background:var(--danger-bg); color:var(--danger-fg); }
   .chk { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--txt); margin:8px 0; cursor:pointer; }
   .chk input { width:auto; accent-color:var(--pri); }
+
+  /* ===== 模板选择器 v2（2026-10-10 替换原生 select）=====
+     动机：原生 <select> 的 optgroup 只能分组、不能折叠，也不能搜索，
+     官方/本地只读项混在一起时看不出哪个能点。改为自绘控件，三处共用。
+     颜色一律走下方 :root[data-theme] 里已定义的 token，不硬编码、不引用不存在的变量。 */
+  .tsel { border:1px solid var(--line); border-radius:10px; background:var(--bg2); }
+  .tsel-bar { display:flex; gap:8px; align-items:center; padding:8px 10px;
+    border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .tsel-bar input[type=search], .tsel-bar input[type=text] { flex:1; min-width:110px; }
+  .tsel-bar label { display:flex; align-items:center; gap:5px; font-size:12px;
+    color:var(--mut); cursor:pointer; white-space:nowrap; }
+  .tsel-bar label input { width:auto; accent-color:var(--pri); }
+  .tsel-bar .tsel-n { font-size:11.5px; color:var(--mut); font-family:var(--mono); white-space:nowrap; }
+  .tsel-list { max-height:232px; overflow:auto; padding:4px 0; }
+  /* 分组标题（可折叠）*/
+  .tsel-grp { display:flex; align-items:center; gap:6px; padding:5px 10px; cursor:pointer;
+    font-size:12.5px; font-weight:500; color:var(--txt); }
+  .tsel-grp:hover { background:var(--panel); }
+  .tsel-car { width:9px; height:9px; flex:0 0 9px; transition:transform .15s; color:var(--mut); }
+  .tsel-grp .tsel-cnt { font-size:11px; color:var(--mut); font-family:var(--mono); }
+  /* 模板行 */
+  .tsel-row { display:flex; align-items:center; gap:8px; padding:4px 10px 4px 22px;
+    cursor:pointer; font-size:12.5px; }
+  .tsel-row:hover { background:var(--panel); }
+  .tsel-row.on { background:var(--bg2); box-shadow:inset 2px 0 0 var(--pri); }
+  .tsel-row.ro { cursor:not-allowed; opacity:.6; }
+  .tsel-row input[type=checkbox] { width:auto; accent-color:var(--pri); flex:0 0 auto; }
+  .tsel-bar-mark { width:3px; height:15px; border-radius:2px; flex:0 0 3px; background:var(--line-strong); }
+  .tsel-bar-mark.cust { background:var(--warn); }
+  .tsel-txt { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tsel-code { font-size:11px; color:var(--mut); font-family:var(--mono); flex:0 0 auto; }
+  .tsel-tag { font-size:10.5px; padding:1px 7px; border-radius:999px; white-space:nowrap; flex:0 0 auto; }
+  .tsel-tag.ro { background:var(--panel); color:var(--mut); }
+  .tsel-tag.ed { background:var(--bg2); color:var(--pri); border:1px solid var(--line-strong); }
+  .tsel-tag.cust { color:var(--warn-fg); border:1px solid var(--warn); }
+  .tsel-empty { padding:12px 10px; font-size:12px; color:var(--mut); }
+  /* 模板工作室子页签（2026-10-10）：把低频的「客户管理 / 模板管理」收进页签 */
+  .studio-tabs { display:flex; align-items:center; gap:6px; margin:2px 0 12px;
+    flex-wrap:wrap; border-bottom:1px solid var(--line); padding-bottom:10px; }
+  .studio-tabs .stab { font:inherit; font-size:12.5px; padding:5px 13px; cursor:pointer;
+    border-radius:8px; border:1px solid var(--line); background:var(--bg2); color:var(--mut);
+    transition:background .15s,color .15s; }
+  .studio-tabs .stab:hover { background:var(--panel); color:var(--txt); }
+  .studio-tabs .stab.on { background:var(--pri); color:var(--on-pri); border-color:var(--pri); }
+  .studio-tabs .stab-hint { font-size:11.5px; color:var(--mut); margin-left:auto; }
   .tsVerifyOut { border:1px solid var(--line); border-radius:10px; padding:11px 13px; font-size:13px;
     background:var(--panel); min-height:46px; transition:.25s; }
   .tsVerifyOut .vrow { display:flex; gap:8px; align-items:flex-start; margin:5px 0; }
@@ -445,7 +503,7 @@
       </div>
       <div class="field span2">
         <label class="lbl">选择模板（一台设备可加多个）</label>
-        <select id="cfTpl"><option>加载模板库…</option></select>
+        <div id="cfTpl"></div>
       </div>
       <div class="field">
         <label class="lbl">设备 hostname</label>
@@ -457,7 +515,7 @@
       </div>
     </div>
 
-    <div class="hint" id="cfClientHint" style="margin-top:10px">未选客户时使用「官方模板 + 未分组模板」。选客户后仅用该客户的模板版本，各客户互不干扰。客户模板在下方「④ 模板工作室 → 客户模板管理」里复制与修改。</div>
+    <div class="hint" id="cfClientHint" style="margin-top:10px">未选客户 = 使用官方库全部模板。选定客户后只用该客户自己的模板（官方库不参与）；不选则在需求里写明客户名。</div>
 
     <div class="act">
       <button id="cfAddTpl" class="ghost">+ 添加模板</button>
@@ -502,6 +560,32 @@
     </div>
     <div class="hint">流程：你给命令 → AI 只做语法包装（绝不创作命令）→ 你逐行检查 → 运行校验 → 确认入库。新模板存到本项目 template_studio/library/，不影响 CG。</div>
 
+    <div id="tsSeamIntro" style="display:none">
+      <div class="tsScale" style="border-left:3px solid var(--pri)">
+        <div class="tsS-head"><span class="tsS-badge" style="background:var(--cloud-bg);color:var(--cloud-fg)">命令保真校验</span></div>
+        <div class="tsS-body">
+          AI 写出的每一行都会和原文逐行核对，<b>少了、多了、改写了都会被拦下并告诉你原文第几行</b>——
+          这是为了杜绝「页面显示成功、配置其实是错的」。
+          <ul style="margin:6px 0 0 18px">
+            <li>原文 <code>&lt;&lt;x&gt;&gt;</code> 转成 <code>{{x}}</code> 属正常转换，<b>不会</b>被拦</li>
+            <li>命令区上方显示材料规模：<b>偏大 / 很大</b>时建议拆成每张 100~150 条命令反复点重新生成没用</li>
+            <li>被拦不等于坏了：按提示的原文行号核对，修正后再点「重新生成」即可</li>
+          </ul>
+          <div style="margin-top:8px"><a href="#" id="tsSeamHide" style="font-size:12px;color:var(--mut)">知道了，不再显示</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- 子页签（2026-10-10）：低频的「客户管理 / 模板管理」收起来，默认只露「新建模板」----
+         仅做 display 切换，不改任何功能逻辑；两块的 DOM 与 JS 绑定原样保留 -->
+    <div class="studio-tabs" id="studioTabs">
+      <button type="button" class="stab on" data-p="paneNew">新建模板</button>
+      <button type="button" class="stab" data-p="paneCustomer">客户管理</button>
+      <button type="button" class="stab" data-p="paneMgmt">模板管理</button>
+      <span class="stab-hint" id="stabHint">客户与模板管理是低频操作，需要时点上面切换</span>
+    </div>
+
+    <div id="paneNew">
     <div class="split2">
       <div class="col">
         <div class="panel">
@@ -516,9 +600,24 @@
           </div>
           <div class="field"><label class="lbl">命令区（一行一条命令；注释用 ## 跟在后面）</label><textarea id="tsContent" placeholder="hostname SW-ACCESS-01              ## 设备名&#10;interface g1/0/1&#10; switchport mode access"></textarea></div>
           <div id="tsFileWrap" style="display:none">
-            <div class="field"><label class="lbl">选择 xlsx（A列=命令，B~E列=注释；可带堆叠图）</label><input id="tsFile" type="file" accept=".xlsx"></div>
+            <div class="field"><label class="lbl">选择 xlsx（A列=命令，B~E列=注释；可带堆叠图）</label><input id="tsFile" type="file" accept=".xlsx">
+              <div id="tsXlsxHint" style="display:none;margin-top:8px"></div>
+              <div class="hint" style="margin-top:7px;line-height:1.75">
+                <b style="color:var(--mut)">导入须知（实测过的边界）：</b><br>
+                ·<b>只读第 1 个工作表</b> —— 内容若在 Sheet2 及以后，请先把它移到第一个工作表；<br>
+                · <b>A 列=命令</b>，B 列及以后都会当注释拼到命令后面（<code>##</code> 分隔）。
+                  <b>C 列及以后若不是注释（如填了检查项、时间），会混进命令正文</b>，建议留空；<br>
+                · 分段标记只认 <code>! --- 段名 ---</code>。写成 <code>=== 段名 ===</code> 或
+                  单纯一行「段名」会被当成普通命令；<br>
+                · 一个 <code>! --- 段名 ---</code> = <b>一个独立模板</b>。表里有 5 个就会生成 5 个模板。<br>
+                · 表头行、空行、<code>!</code> 开头的说明行都会自动跳过/保留，不用手动清理。
+              </div>
+            </div>
           </div>
           <div class="field"><label class="lbl">需求描述 / 语言提示（可选）</label><textarea id="tsRequire" placeholder="例如：接入交换机，上行口 access，带 VLAN 管理"></textarea></div>
+          <div id="tsScaleWrap" style="display:none">
+            <div class="tsScale" id="tsScale"></div>
+          </div>
           <div class="act">
             <button id="tsGenerate">① AI 生成模板</button>
             <span class="meta" id="tsStatus"></span>
@@ -556,12 +655,13 @@
         </div>
       </div>
     </div>
+    </div><!-- /paneNew -->
 
     <!-- ---- 客户模板管理（客户新建 / 官方模板复制到客户下） ---- -->
-    <div class="subpanel">
+    <div class="subpanel" id="paneCustomer" style="display:none">
       <div class="subpanel-head">
         <span class="ph-title">客户模板管理 · 建客户 / 复制官方模板</span>
-        <span class="ph-note">官方库只读不动 · 每个客户各自一份，互不干扰</span>
+        <span class="ph-note">官方库只读不动 · 复制给客户后各存一份，互不干扰</span>
       </div>
       <div class="form-grid cols-2">
         <div class="field">
@@ -575,11 +675,13 @@
       </div>
       <div class="act">
         <button id="mgClientAdd" class="ghost">新建客户</button>
+        <button id="mgClientDel" class="danger">删除当前客户</button>
+        <span class="meta" id="mgClientDelHint" style="font-size:11.5px"></span>
       </div>
       <div class="form-grid cols-2 mt">
         <div class="field">
           <label class="lbl">把官方模板复制到该客户下</label>
-          <select id="mgForkSel"><option value="">（先选客户，再选官方模板）</option></select>
+          <div id="mgForkSel"></div>
         </div>
         <div class="field" style="display:flex;align-items:flex-end">
           <button id="mgFork" class="ghost" style="width:100%" disabled>复制到客户下</button>
@@ -595,7 +697,7 @@
     </div>
 
     <!-- ---- 模板管理 ---- -->
-    <div class="subpanel">
+    <div class="subpanel" id="paneMgmt" style="display:none">
       <div class="subpanel-head">
         <span class="ph-title">模板管理 · 改已有 / 删</span>
         <span class="ph-note">官方库只读 · 本地库一律存为新版本 v+1</span>
@@ -603,7 +705,7 @@
       <div class="split2">
         <div class="col">
           <div class="form-grid cols-2">
-            <div class="field span2"><label class="lbl">模板（官方库那组是禁选的只读项；本地库选中即可编辑）</label><select id="mgSel"><option value="">（加载模板库…）</option></select></div>
+            <div class="field span2"><label class="lbl">模板（官方库为只读、不可编辑；本地库选中即可编辑）</label><div id="mgSel"></div></div>
             <div class="field"><label class="lbl">显示名 <small>(改了会写进新版本)</small></label><input id="mgLabel" placeholder="留空 = 沿用原显示名"></div>
             <div class="field" style="display:flex;align-items:flex-end"><button id="mgVerify" class="ghost" style="width:100%">校验改动</button></div>
           </div>
@@ -691,37 +793,228 @@ $("send").addEventListener("click", async () => {
 
 // ---------- ② CONFIG FORGE ----------
 let TEMPLATES = [];
+let ALL_TPL_ALL = [];        // 全库模板（不带 client），供跨分类检测用；TEMPLATES 随客户变化
 let CLIENTS = [];
 let CURRENT_CLIENT = "";   // 客户上下文：空 = 全部/未限定
 
+// ===== 模板选择器 v2 组件（2026-10-10）=====
+// 替换原生 <select>：原生 optgroup 只能分组、不能折叠、不能搜索，
+// 且「官方只读 / 本地可改」混在一起时看不出哪个能点。
+// 三处共用（生成区 / 编辑模板 / 复制到客户），靠 opts 区分：
+//   items      : [{key, label, code, readOnly, cust, override, badge}]
+//   groups     : [{id, label, open, test(item)}]  顺序即展示顺序
+//   mode       : 'single' | 'multi'
+//   onPick(key, item) / onChange(pickedKeys)
+const TSel = {
+  _insts: [],
+  esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); },
+
+  create(mount, opts) {
+    const st = {
+      mount, opts,
+      q: "", picked: new Set(opts.initial || []),
+      open: {}, pickedRO: null,
+      items: opts.items || [],   // 必须初始化：create() 末尾会调 render()，
+      byKey: {},                // 未 setItems 就 render 会读到 undefined
+    };
+    (opts.groups || []).forEach(g => { st.open[g.id] = g.open !== false; });
+    st.inst = this;
+    this._insts.push(st);
+
+    mount.innerHTML =
+      '<div class="tsel">'
+      + '<div class="tsel-bar">'
+      +   '<input type="search" placeholder="' + this.esc(opts.placeholder || "搜索…") + '">'
+      +   (opts.extraToggle || "")
+      +   '<span class="tsel-n"></span>'
+      + '</div>'
+      + '<div class="tsel-list"></div>'
+      + '</div>';
+    st.q = mount.querySelector('input[type=search]');
+    st.list = mount.querySelector(".tsel-list");
+    st.num = mount.querySelector(".tsel-n");
+    st.q.addEventListener("input", () => { st.q.value = st.q.value; render(st); });
+    if (opts.extraToggle) {
+      const t = mount.querySelector('input[type=checkbox]');
+      if (t) t.addEventListener("change", () => { if (opts.onToggle) opts.onToggle(t.checked); render(st); });
+    }
+    mount.addEventListener("click", e => {
+      const grp = e.target.closest(".tsel-grp");
+      if (grp) { st.open[grp.dataset.g] = !st.open[grp.dataset.g]; render(st); return; }
+      const row = e.target.closest(".tsel-row");
+      if (!row) return;
+      const it = st.byKey[row.dataset.k];
+      if (!it) return;
+      if (it.readOnly) { st.pickedRO = st.pickedRO === row.dataset.k ? null : row.dataset.k; render(st);
+                         if (opts.onPick) opts.onPick(row.dataset.k, it, true); return; }
+      if (st.opts.mode === "multi") {
+        if (st.picked.has(row.dataset.k)) st.picked.delete(row.dataset.k); else st.picked.add(row.dataset.k);
+      } else {
+        const k = row.dataset.k;
+        st.pickedRO = null;
+        if (st.picked.has(k)) st.picked.delete(k); else { st.picked.clear(); st.picked.add(k); }
+      }
+      render(st);
+      if (opts.onPick) opts.onPick(row.dataset.k, it, !!st.picked.has(row.dataset.k));
+      if (opts.onChange) opts.onChange(Array.from(st.picked));
+    });
+    render(st);
+    return st;
+  },
+
+  setItems(st, items) { st.items = items || []; render(st); },
+  setPicked(st, keys) { st.picked = new Set(keys || []); st.pickedRO = null; render(st); },
+  getPicked(st) { return Array.from(st.picked); },
+  render(st) { render(st); },
+};
+
+function _tselRowHtml(st, it, on) {
+  const o = st.opts;
+  const box = o.mode === "multi"
+    ? '<input type="checkbox"' + (on ? " checked" : "") + ">"
+    : "";
+  // 标签规则：badge 为空就**整块不渲染**（不塞默认文案）。
+  // 曾经非只读项默认显示「可改」，导致生成区官方模板也一律标「可改」——
+  // 那儿根本不能编辑模板，这个标签纯属误导（用户 2026-10-10 反馈）。
+  let tag = "";
+  if (it.readOnly) {
+    tag = '<span class="tsel-tag ro">' + TSel.esc(it.badge || "只读") + "</span>";
+  } else if (it.badge) {
+    tag = '<span class="tsel-tag ' + (it.cust ? "cust" : "ed") + '">'
+        + TSel.esc(it.badge) + "</span>";
+  }
+  return '<div class="tsel-row' + (on ? " on" : "") + (it.readOnly ? " ro" : "")
+       + '" data-k="' + TSel.esc(it.key) + '">' + box
+       + '<span class="tsel-bar-mark' + (it.cust ? " cust" : "") + '"></span>'
+       + '<span class="tsel-txt">' + TSel.esc(it.label) + "</span>"
+       + '<span class="tsel-code">' + TSel.esc(it.code || "") + "</span>" + tag + "</div>";
+}
+
+function render(st) {
+  const o = st.opts, q = st.q.value.trim().toLowerCase();
+  const hit = st.items.filter(it => !q
+    || String(it.label).toLowerCase().indexOf(q) >= 0
+    || String(it.code || "").toLowerCase().indexOf(q) >= 0);
+  st.byKey = {};
+  (st.items || []).forEach(it => { st.byKey[it.key] = it; });
+  st.visible = hit;      // 供「全选当前结果」用（只看得到选得到的那些）
+
+  let h = "";
+  (o.groups || []).forEach(g => {
+    const arr = hit.filter(it => g.test(it));
+    if (!arr.length && !g.keepEmpty) return;
+    h += '<div class="tsel-grp" data-g="' + g.id + '">'
+       +   '<svg class="tsel-car" viewBox="0 0 9 9" style="transform:rotate('
+       +     (st.open[g.id] ? 90 : 0) + 'deg)"><path d="M2 1 L7 4.5 L2 8" fill="none"'
+       +     ' stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+       +   TSel.esc(g.label) + ' <span class="tsel-cnt">' + arr.length + "</span></div>";
+    if (!st.open[g.id]) return;
+    if (!arr.length) { h += '<div class="tsel-empty" style="padding-left:22px">（无匹配）</div>'; return; }
+    arr.forEach(it => {
+      const on = it.readOnly ? (st.pickedRO === it.key) : st.picked.has(it.key);
+      h += _tselRowHtml(st, it, on);
+    });
+  });
+  if (!h) h = '<div class="tsel-empty">没有匹配的模板</div>';
+  st.list.innerHTML = h;
+  st.num.textContent = hit.length + " / " + (st.items ? st.items.length : 0);
+}
+
+// ===== 表格体检（导入须知 · 2026-10-11）=====
+// 后端 /api/template/scale 顺带返回 xlsx_check（实测确认过的坑）。
+// 静态说明是「规则」，这里是「你这份表的情况」，两者互补。
+function _tsXlsxDoctor(chk){
+  const el = $("tsXlsxHint");
+  if (!el) return;
+  if (!chk) { el.innerHTML = ""; el.style.display = "none"; return; }
+  const W = chk.warns || [], I = chk.info || [];
+  const html =
+    (W.length ? `<div style="border-left:3px solid var(--warn);background:var(--bg2);
+        padding:8px 11px;margin-bottom:7px;border-radius:0 6px 6px 0">
+      <b style="color:var(--warn)">⚠ 这份表有 ${W.length} 处要注意</b><br>` +
+      W.map(w => "· " + _tsEsc(w)).join("<br>") + `</div>` : "") +
+    (I.length ? `<div style="color:var(--mut);font-size:12px;line-height:1.7">` +
+      I.map(x => "✓ " + _tsEsc(x)).join("<br>") + `</div>` : "");
+  el.innerHTML = html;
+  el.style.display = html ? "" : "none";
+}
+
 function cfClientValue(){ const el = $("cfClient"); return el ? (el.value || "").trim() : ""; }
 
+// 跨分类检测（前端版，与后端 app.detect_cross_category 同口径）：
+// 一台设备只能设一个 category，引擎会拿这个 category 去找每个模板；
+// 若某模板实际属于别的分类，就会报「模板未找到 / NoneType.strip」。
+// 只提示，不改行为。返回人话提示；没问题返回 ""。
+function detectCrossCategoryLocal(spec){
+  const bad = [];
+  const catOf = {};
+  // ⚠️ 必须用**全库**（ALL_TPL_ALL）而非 TEMPLATES：TEMPLATES 随客户上下文变化，
+  // 客户隔离后里面没有官方模板，会静默漏报 —— 而那正是要提示的场景。
+  (typeof ALL_TPL_ALL !== "undefined" && ALL_TPL_ALL ? ALL_TPL_ALL : TEMPLATES || []).forEach(t => {
+    const real = String(t.name || "").split("@")[0].trim();
+    if (real && !catOf[real]) catOf[real] = t.category;
+  });
+  (spec && spec.devices || []).forEach(dev => {
+    const dc = String((dev && dev.category) || "").trim();
+    (dev && dev.templates || []).forEach(tpl => {
+      const real = String((tpl && tpl.name) || "").split("@")[0].trim();
+      const want = catOf[real];
+      if (want && dc && want !== dc) {
+        bad.push({ hostname: (dev && dev.hostname) || "", dev: dc, tpl: tpl.name || real, want });
+      }
+    });
+  });
+  if (!bad.length) return "";
+  const dc0 = bad[0].dev;
+  const L = ["⚠️ 检测到跨分类模板，当前数据模型不支持，会生成失败：", ""];
+  L.push("   设备分类：" + dc0);
+  bad.forEach(b => L.push("   · 模板「" + b.tpl + "」实际属于 " + b.want));
+  L.push("");
+  L.push("   原因：一台设备只能设一个分类，引擎会拿「" + dc0 + "」去找所有模板。");
+  L.push("   办法（任选一种）：");
+  L.push("   1) 把该模板复制到 " + dc0 + " 分类下（模板工作室 → 客户管理 → 复制官方模板）；");
+  L.push("   2) 或拆成两台设备分别生成（各自设自己的分类），再合并 Excel。");
+  return L.join("\n");
+}
+
+// ===== 生成区模板选择（cfTpl）=====
+// 分组：**跟随客户上下文变化**（2026-11 严格隔离后）：
+//   选定客户 -> 只有「该客户模板」一组（后端已不并入官方库，这里也不会出现官方组）
+//   未选客户 -> 只有「官方库」一组
+// 单选点选即添加（addTplBlock 内已做去重），当前沿用「点一个加一个」的习惯。
+let CF_TSEL = null;
+
 function renderTemplateSelect(){
-  const sel = $("cfTpl");
-  sel.innerHTML = "";
-  if (!TEMPLATES.length) { sel.innerHTML = "<option>无模板</option>"; return; }
-  // 按 category 分组（客户上下文已由后端解析好：列表里就是该客户视角的模板集）
-  const groups = new Map();
-  for (let i = 0; i < TEMPLATES.length; i++) {
-    const t = TEMPLATES[i];
-    const g = t.category || "未分类";
-    if (!groups.has(g)) groups.set(g, []);
-    groups.get(g).push([i, t]);
+  const mount = $("cfTpl");
+  if (!mount) return;
+  const cli = cfClientValue();
+  // 标签只标「本区有意义的信息」：模板类型 + 归属。
+  // 不标「可改/可删」——这里是生成区，不能编辑模板，标了纯属误导。
+  const items = TEMPLATES.map((t, i) => ({
+    key: String(i),
+    label: t.label,
+    code: t.name + " @ " + t.version,
+    cust: !!t.client,
+    readOnly: false,
+    badge: t.type !== "normal" ? t.type
+         : (t.client ? (cli ? cli + " 定制" : "客户专属") : "官方"),
+  }));
+  if (!CF_TSEL) {
+    CF_TSEL = TSel.create(mount, {
+      mode: "single",
+      placeholder: "搜索模板（中文名 / 英文名）",
+      groups: [],
+      onPick(key) { addTplBlock($("cfTplList"), +key); },
+    });
   }
-  for (const [g, arr] of groups) {
-    const og = document.createElement("optgroup");
-    og.label = g;
-    for (const [i, t] of arr) {
-      const o = document.createElement("option");
-      o.value = String(i);
-      const badge = t.type === "normal" ? "" : ` · ${t.type}`;
-      const ovr = t.override ? " ·已覆盖官方" : "";
-      const cli = t.client ? ` @${t.client}` : "";
-      o.textContent = `${t.label} (${t.name}${cli} @ ${t.version})${badge}${ovr}`;
-      og.appendChild(o);
-    }
-    sel.appendChild(og);
+  // TSel 的 groups 在 create 时固定，客户上下文变化需重建分组
+  if (CF_TSEL._cli !== cli) {
+    CF_TSEL._cli = cli;
+    CF_TSEL.opts.groups = cli
+      ? [{ id: "cust", label: "「" + cli + "」的模板", open: true, test: it => it.cust }]
+      : [{ id: "base", label: "官方库模板（未选客户）", open: true, test: it => !it.cust }];
   }
+  TSel.setItems(CF_TSEL, items);
 }
 
 async function loadClients(){
@@ -778,15 +1071,34 @@ async function loadClients(){
 async function loadTemplates(){
   const client = cfClientValue();
   CURRENT_CLIENT = client;
+  // 顺带取一份**全库**模板（TEMPLATES 随客户上下文变化，跨分类检测需要全量分类信息）。
+  // 失败不影响主流程，检测时会退回 TEMPLATES。
+  try{
+    const allRes = await fetch("/api/templates");
+    const allData = await allRes.json();
+    ALL_TPL_ALL = allData.templates || [];
+  }catch(e){ /* 保持上次的值即可 */ }
   const res = await fetch("/api/templates" + (client ? "?client=" + encodeURIComponent(client) : ""));
   const data = await res.json();
   TEMPLATES = data.templates || [];
   const _st = document.getElementById("statTpl"); if (_st) _st.textContent = String(TEMPLATES.length);
   const hint = $("cfClientHint");
   if (hint) {
-    hint.textContent = client
-      ? `当前客户「${client}」：使用该客户专属模板（顶替同名官方模板），其他客户的模板不可见。`
-      : "未选客户时使用「官方模板 + 未分组模板」。选客户后仅用该客户的模板版本，各客户互不干扰。";
+    // 口径（与后端 _resolve_client_templates 一致）：官方模板是**底座**，任何时候都可见；
+    // 客户专属模板是**顶替**——只有与官方同名时才替换掉那一条。
+    // 所以「选了客户但没 fork 过模板」时看到的仍是官方模板，这是对的，
+    // 否则该客户将没有任何可用模板、什么都生成不出来。
+    let txt;
+    if (client) {
+      const mine = TEMPLATES.filter(t => t.client === client).length;
+      txt = `当前客户「${client}」：只用该客户自己的 ${mine} 个模板，不混官方库。`
+          + (mine ? "" : "该客户还没有任何模板——需先去「④ 模板工作室 → 客户管理」复制官方模板过来。")
+          + "其他客户的模板也不可见。";
+    } else {
+      txt = "未选客户 = 使用官方库全部模板。"
+          + "在下方需求里写明客户名，系统会按该客户生成。";
+    }
+    hint.textContent = txt;
   }
   renderTemplateSelect();
 }
@@ -794,33 +1106,87 @@ async function loadTemplates(){
 // ---------- ④ 客户模板管理（建客户 / 复制官方模板到客户下） ----------
 function mgClientValue(){ const el = $("mgClientSel"); return el ? (el.value || "").trim() : ""; }
 
+// ===== 复制到客户下（mgForkSel）=====
+// 分组：官方库（来源）/ 本地库（该客户已复制过的，禁选——复制源只能是官方库）。
+// 用户要求能看到「已复制」，便于确认这个客户到底改过哪些模板。
+// 2026-10-10：改为**多选批量复制**（原先单选只能一个一个点）。
 let MG_OFFICIAL = [];
+let MG_FORK_SEL = null;
+let MG_FORK_PICKS = [];      // [{category,name,version}] 可多个（multi 模式选中项）
+let MG_LOCAL_OWN = [];        // 当前客户已拥有的本地条目（只读展示）
+
 async function mgLoadOfficialForFork(){
-  const sel = $("mgForkSel");
   try{
     const res = await fetch("/api/template/entries");
     const d = await res.json();
     MG_OFFICIAL = d.official || [];
   }catch(e){ MG_OFFICIAL = []; }
-  sel.innerHTML = "";
-  const none = document.createElement("option");
-  none.value = ""; none.textContent = MG_OFFICIAL.length ? "（选一个官方模板）" : "（无可用官方模板）";
-  sel.appendChild(none);
-  for (const t of MG_OFFICIAL) {
-    const o = document.createElement("option");
-    o.value = t.name;
-    o.dataset.category = t.category;
-    o.dataset.version = t.version;
-    o.textContent = t.label + " (" + t.name + " @ " + t.version + ")";
-    sel.appendChild(o);
+  // 顺带取该客户已拥有的本地条目（用于「本地库」分组展示）
+  const c = mgClientValue();
+  try{
+    const res2 = await fetch("/api/template/entries" + (c ? "?client=" + encodeURIComponent(c) : ""));
+    const d2 = await res2.json();
+    MG_LOCAL_OWN = (d2.local || []).filter(t => !c || t.client === c);
+  }catch(e){ MG_LOCAL_OWN = []; }
+
+  const items = MG_OFFICIAL.map(t => ({
+    key: "off:" + t.category + "/" + t.name + "@" + t.version,
+    label: t.label || t.name,
+    code: t.name + " @ " + (t.version || ""),
+    readOnly: false,
+    badge: "复制源",
+    _d: { category: t.category, name: t.name, version: t.version },
+  })).concat(MG_LOCAL_OWN.map(t => ({
+    key: "loc:" + t.category + "/" + t.name + "@" + t.version,
+    // 客户名取实际值（曾硬编码「@华为」，导致选 Customer1 也显示 @华为）
+    label: (t.label || t.name) + " · @" + (t.client || "未分组"),
+    code: t.name + " @ " + (t.version || ""),
+    readOnly: true, cust: true, badge: "已复制",
+  })));
+
+  if (!MG_FORK_SEL) {
+    MG_FORK_SEL = TSel.create($("mgForkSel"), {
+      mode: "multi",
+      placeholder: "搜索官方模板（中文名 / 英文名）",
+      extraToggle: '<label><input type="checkbox">全选当前结果</label>',
+      groups: [
+        { id: "off", label: "官方库（复制来源 · 勾选后可一次复制多个）", open: true, test: it => it.key.startsWith("off:") },
+        { id: "loc", label: "本地库 · 该客户已复制（只读）", open: true, test: it => it.key.startsWith("loc:") },
+      ],
+      onChange() { syncForkPicks(); mgForkSync(); },
+      onToggle(on) {
+        // 全选当前**可见**项（搜索过滤后的结果），只读项一律跳过。
+        // 不在此处 render：外层 change 处理器会统一 render 一次，避免重复刷新。
+        const vis = (MG_FORK_SEL.visible || []).filter(it => !it.readOnly);
+        vis.forEach(it => { if (on) MG_FORK_SEL.picked.add(it.key); else MG_FORK_SEL.picked.delete(it.key); });
+        syncForkPicks();
+        mgForkSync();
+      },
+    });
   }
+  TSel.setItems(MG_FORK_SEL, items);
+  syncForkPicks();
   mgForkSync();
+}
+
+// 从组件选中项回填可复制的官方模板列表（本地库只读项会被过滤掉）
+function syncForkPicks() {
+  MG_FORK_PICKS = TSel.getPicked(MG_FORK_SEL)
+    .filter(k => k.startsWith("off:"))
+    .map(k => {
+      const it = MG_FORK_SEL.byKey[k];
+      return it && it._d ? it._d : null;
+    }).filter(Boolean);
 }
 
 function mgForkSync(){
   const btn = $("mgFork");
-  const hasTpl = !!($("mgForkSel") && $("mgForkSel").value);
-  btn.disabled = !(mgClientValue() && hasTpl);
+  const cli = mgClientValue();
+  const n = MG_FORK_PICKS.length;
+  btn.disabled = !(cli && n);
+  btn.textContent = !cli ? "复制到客户下"
+    : n > 1 ? ("复制 " + n + " 个模板到「" + cli + "」下")
+    : (n === 1 ? ("复制到「" + cli + "」下") : "复制到客户下");
 }
 
 async function mgAddClient(){
@@ -845,6 +1211,80 @@ async function mgAddClient(){
   }catch(e){ out.textContent = "失败：" + e; }
 }
 
+// ===== 删除客户（2026-10-10）=====
+// 不可逆操作（会删本地库模板目录 + 从 clients 移除），故：
+//   ① 需连点两次按钮确认（沿用 mgDelete 的 MG_ARMED 范式）
+//   ② 确认框明确告知「会删掉该客户名下 N 个模板」，不糊弄
+//   ③ 删完把该客户从当前选中状态摘掉，并刷新模板列表与两个选择器
+let MG_DEL_ARMED = false;
+let MG_DEL_TIMER = null;
+
+function mgDelClientReset(){
+  MG_DEL_ARMED = false;
+  const b = $("mgClientDel");
+  if (b) b.textContent = "删除当前客户";
+  if (MG_DEL_TIMER) { clearTimeout(MG_DEL_TIMER); MG_DEL_TIMER = null; }
+}
+
+async function mgDelClient(){
+  const out = $("mgForkOut");
+  const btn = $("mgClientDel");
+  const client = mgClientValue();
+  if (!client) { out.textContent = "请先在上方选择要删除的客户"; return; }
+
+  if (!MG_DEL_ARMED) {
+    // 先告诉用户这个客户名下到底有多少模板，别让人稀里糊涂点掉
+    let n = 0;
+    try{
+      const res = await fetch("/api/template/entries?client=" + encodeURIComponent(client));
+      const d = await res.json();
+      n = (d.local || []).filter(t => (t.client || "") === client).length;
+    }catch(e){ /* 查不到就按 0 说，不阻塞确认流程 */ }
+    const msg = n
+      ? "客户「" + client + "」名下有 " + n + " 个专属模板。\n\n"
+        + "删除将：移除这 " + n + " 个模板（含版本历史）、从客户列表中移除该客户。\n"
+        + "官方库不受影响。\n\n确定删除吗？再点一次「删除当前客户」执行。"
+      : "客户「" + client + "」名下没有专属模板。\n\n"
+        + "删除只会把它从客户列表中移除。\n\n确定删除吗？再点一次「删除当前客户」执行。";
+    if (!confirm(msg)) return;
+    MG_DEL_ARMED = true;
+    btn.textContent = "再点一次确认删除";
+    MG_DEL_TIMER = setTimeout(mgDelClientReset, 6000);   // 6 秒内不点就自动解除
+    return;
+  }
+
+  mgDelClientReset();
+  btn.disabled = true;
+  out.textContent = "删除中…";
+  try{
+    const res = await fetch("/api/client/delete", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ client, purge: true })
+    });
+    const d = await res.json();
+    if (!res.ok) { out.textContent = "删除失败：" + (d.error || res.status); return; }
+    if (d.not_found) {
+      out.textContent = "未找到客户「" + client + "」（可能已删除），未做任何改动。";
+      btn.disabled = false;
+      return;
+    }
+    // 同步：客户列表 / 模板集 / 两个选择器 / 当前客户上下文
+    CLIENTS = d.clients || [];
+    if (cfClientValue() === client && $("cfClient")) $("cfClient").value = "";
+    await loadClients();
+    await loadTemplates();
+    await mgLoadOfficialForFork();
+    mgForkSync();
+    mgRefresh();
+    const msg = "✅ 已删除客户「" + client + "」"
+      + (d.template_count ? "及其 " + d.template_count + " 个专属模板" : "")
+      + "。官方库未受影响。";
+    if ((d.kept_dirs || []).length) msg += "\n注意：" + d.kept_dirs.join("；");
+    out.textContent = msg;
+  }catch(e){ out.textContent = "删除失败：" + e; }
+  finally { btn.disabled = false; }
+}
+
 // fork 目标：needs_confirm 时记住这次请求，等用户点「改存为新版本」再带 overwrite 提交
 let MG_FORK_PENDING = null;
 
@@ -853,38 +1293,65 @@ function mgForkConfirmShow(show){
   if (box) box.style.display = show ? "" : "none";
 }
 
+// 批量复制到客户（2026-10-10：改成多选，逐个调 /api/template/fork）。
+// 遇到 needs_confirm（该客户下已有同名条目）立即停下并保留队列，
+// 用户点「改存为新版本」后继续处理剩下的——绝不静默覆盖。
 async function mgForkTemplate(force){
   const client = mgClientValue();
-  const sel = $("mgForkSel");
   const out = $("mgForkOut");
-  const opt = sel.selectedOptions && sel.selectedOptions[0];
   if (!client) { out.textContent = "请先在上方选择客户"; mgForkConfirmShow(false); return; }
-  if (!opt || !opt.value) { out.textContent = "请先选一个官方模板"; mgForkConfirmShow(false); return; }
-  out.textContent = force ? "改存为新版本中…" : "复制中…";
+
+  // force=true 来自「改存为新版本」按钮：继续处理待确认队列里的那一个
+  let queue = force && MG_FORK_PENDING ? [MG_FORK_PENDING]
+           : (MG_FORK_PENDING && MG_FORK_PENDING.queue ? MG_FORK_PENDING.queue : MG_FORK_PICKS);
+  if (!queue || !queue.length) {
+    out.textContent = "请先勾选要复制的模板（本地库那组只是已复制清单，不能再复制）";
+    mgForkConfirmShow(false);
+    return;
+  }
   mgForkConfirmShow(false);
-  try{
-    const res = await fetch("/api/template/fork", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ client, category: opt.dataset.category,
-                             name: opt.value, from_version: opt.dataset.version,
-                             overwrite: !!force })
-    });
-    const d = await res.json();
-    if (!res.ok) { out.textContent = "失败：" + (d.error || res.status); return; }
-    if (d.needs_confirm) {
-      // 该客户下已有同名条目 → 给出可点的确认入口（此前只打印文字，用户无处操作）
-      MG_FORK_PENDING = { client, category: opt.dataset.category, name: opt.value,
-                          from_version: opt.dataset.version };
-      out.textContent = "⚠️ " + d.message;
-      mgForkConfirmShow(true);
-      return;
-    }
-    MG_FORK_PENDING = null;
-    out.textContent = "✅ 已复制到客户「" + d.client + "」：" + d.category + "/" + d.name + " " + d.version
-      + "（" + d.files + " 个文件）。该客户在「配置生成」里就能选到它（带 @客户 后缀）。";
-    await loadTemplates();
-    await mgRefresh();
-  }catch(e){ out.textContent = "失败：" + e; }
+
+  const done = [], failed = [], confirm = [];
+  for (let i = 0; i < queue.length; i++) {
+    const pick = queue[i];
+    out.textContent = (force ? "改存为新版本中…" : "复制中…") + " (" + (i + 1) + "/" + queue.length + ") " + pick.name;
+    try{
+      const res = await fetch("/api/template/fork", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ client, category: pick.category,
+                               name: pick.name, from_version: pick.version,
+                               overwrite: !!force })
+      });
+      const d = await res.json();
+      if (!res.ok) { failed.push(pick.name + "（" + (d.error || res.status) + "）"); continue; }
+      if (d.needs_confirm) {
+        // 该客户下已有同名条目 -> 停下，把剩余的也存进队列，等用户决定
+        confirm.push(pick.name);
+        MG_FORK_PENDING = { queue: queue.slice(i) };
+        let msg = "⚠️ " + confirm.length + " 个模板在客户「" + client + "」下已有同名条目：" + confirm.join("、")
+          + "。已复制 " + done.length + " 个。";
+        if (confirm.length > 1) msg += " 这些将逐个等你确认。";
+        out.textContent = msg;
+        mgForkConfirmShow(true);
+        await loadTemplates();
+        await mgRefresh();
+        await mgLoadOfficialForFork();
+        return;
+      }
+      done.push(pick.name + " " + (d.version || ""));
+    }catch(e){ failed.push(pick.name + "（" + e + "）"); }
+  }
+
+  MG_FORK_PENDING = null;
+  let msg = "";
+  if (done.length) msg += "✅ 已复制到客户「" + client + "」：" + done.length + " 个（" + done.join("、") + "）。";
+  if (failed.length) msg += "\n❌ 失败 " + failed.length + " 个：" + failed.join("；");
+  if (!done.length && !failed.length) msg = "没有勾选任何模板。";
+  out.textContent = msg;
+  if (done.length) { TSel.setPicked(MG_FORK_SEL, []); syncForkPicks(); mgForkSync(); }
+  await loadTemplates();
+  await mgRefresh();
+  await mgLoadOfficialForFork();
 }
 
 // 按字段语义给"该填什么"的示例：不同字段给不同提示（而非所有端口类字段一句"如 g1/0/1"）
@@ -994,7 +1461,12 @@ function addStackRow(rep, kind) {
   row.querySelector(".del").addEventListener("click", () => row.remove());
   rep.querySelector(".rep-body").appendChild(row);
 }
-$("cfAddTpl").addEventListener("click", () => addTplBlock($("cfTplList"), +$("cfTpl").value));
+// 「+ 添加模板」：用选择器当前选中项（点行即选中后再点这个按钮的场景）
+$("cfAddTpl").addEventListener("click", () => {
+  const ks = CF_TSEL ? TSel.getPicked(CF_TSEL) : [];
+  if (!ks.length) { $("cfRunStatus").textContent = "请先在上方点选一个模板"; return; }
+  addTplBlock($("cfTplList"), +ks[ks.length - 1]);
+});
 
 // 客户上下文切换：重载该客户视角的模板集
 (function(){
@@ -1060,14 +1532,29 @@ function assembleSpecCore(listEl, hostVal, stackVal) {
 }
 function assembleSpec() { return assembleSpecCore($("cfTplList"), $("cfHost").value, $("cfStack").value); }
 
+// 生成结果里的客户回显。
+// ⚠️ 两种来源要分开说清（用户 2026-10-10 反馈：没手动选客户却蹦出「如选错客户…」很困惑）：
+//   1. 上方下拉手动选了客户 -> 「按你选定的客户 X 生成」
+//   2. 没选客户，但模型从需求文字里认出了客户 -> 「需求里提到 X，本次按它生成；
+//      若想用别的客户或官方版本，请在上方选择客户后重新生成」
+//      这不是「选错了」——用户本来就没选过，无从选错。
 function showClientUsed(clients){
   const box = $("cfClientUsed");
   if (!box) return;
   const arr = (clients || []).filter(Boolean);
-  if (!arr.length) { box.style.display = "none"; box.textContent = ""; return; }
+  const picked = cfClientValue();
+  // 没选客户且模型也没认出任何客户 -> 不显示（没什么可说的）
+  if (!arr.length && !picked) { box.style.display = "none"; box.textContent = ""; return; }
   box.style.display = "";
-  box.innerHTML = `⚠️ 本次使用客户模板：<b>${arr.join("、")}</b>　如选错客户，请改上方「客户上下文」后重新生成。`;
-}
+  if (picked) {
+    box.innerHTML = "已按上方选定的客户 <b>" + _tsEsc(picked) + "</b> 生成"
+      + (arr.indexOf(picked) < 0
+          ? "，但本次 spec 没用上它的专属模板（用的是官方版本）。" : "");
+  } else {
+    // 客户名来自 LLM 输出，必须转义后再插进 innerHTML
+    box.innerHTML = "需求里提到客户 <b>" + _tsEsc(arr.join("、")) + "</b>，本次按该客户生成。"
+      + "若想用其他客户或官方版本，请在上方「客户上下文」选择后重新生成。";
+  }}
 
 $("cfRun").addEventListener("click", async () => {
   const spec = assembleSpec();
@@ -1096,8 +1583,18 @@ $("cfPlan").addEventListener("click", async () => {
     if (!res.ok) { $("cfPlanStatus").textContent = "错误"; $("cfOut").textContent = JSON.stringify(d, null, 2); return; }
     const cls = d.kind === "local" ? "local" : "cloud";
     $("cfUsed").innerHTML = `规划模型：<span class="badge ${cls}">${d.kind}</span> ${d.provider}`;
-    $("cfOut").innerHTML = `✅ 已生成 ${downloadLink(d.output)}\n\n规划出的 spec：\n${JSON.stringify(d.spec, null, 2)}`;
-    $("cfPlanStatus").textContent = "完成";
+    // 跨分类检测（后端只提示不阻断）：把「会生成失败」的原因摆到最前面，别让用户
+    // 以为规划成功了、点生成才报一个看不懂的 NoneType.strip
+    const cross = d.cross_category
+      ? `<pre class="tsCross" style="white-space:pre-wrap;padding:11px 13px;margin:0 0 12px;
+           border-left:3px solid var(--warn);border-radius:0 var(--rad) var(--rad) 0;
+           background:var(--bg2);color:var(--txt);font-size:12px">${_tsEsc(d.cross_category)}</pre>`
+      : "";
+    // ⚠️ 2026-10-11 修正：此前误写成「已规划出 spec（未生成 Excel）」并删掉了
+    // downloadLink，导致规划完不再出下载链接 —— 其实后端一直在正常返回 output。
+    $("cfOut").innerHTML = cross
+      + `✅ 已生成 ${downloadLink(d.output)}\n\n规划出的 spec：\n${_tsEsc(JSON.stringify(d.spec, null, 2))}`;
+    $("cfPlanStatus").textContent = d.cross_category ? "完成（有跨分类问题）" : "完成";
     showClientUsed(d.clients || (cfClientValue() ? [cfClientValue()] : []));
   } catch (e) { $("cfPlanStatus").textContent = "失败"; $("cfOut").textContent = String(e); }
   finally { $("cfPlan").disabled = false; }
@@ -1268,20 +1765,151 @@ $("cfPlanDraft").addEventListener("click", async () => {
 $("draftRun").addEventListener("click", async () => {
   const spec = assembleSpecCore($("draftTplList"), $("draftHost").value, $("draftStack").value);
   if (!spec) { $("draftStatus").textContent = "请先添加至少一个模板"; return; }
+  // 跨分类检测：**只提示、不阻断**（2026-10-11 修正）。此前在此 return，
+  // 结果跨分类时生成被挡住、连正常场景也不出 Excel。
+  // 现在照常发起生成，若确实会失败，把原因显示在结果上方。
+  const cross = detectCrossCategoryLocal(spec);
   $("draftRun").disabled = true; $("draftStatus").textContent = "生成中…";
   try {
     const res = await fetch("/api/skill/run", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ spec }) });
     const r = await res.json();
-    if (!res.ok) { $("draftStatus").textContent = "错误"; $("cfOut").textContent = r.error; return; }
+    const crossBox = cross
+      ? `<pre style="white-space:pre-wrap;padding:11px 13px;margin:0 0 12px;
+           border-left:3px solid var(--warn);border-radius:0 var(--rad) var(--rad) 0;
+           background:var(--bg2);color:var(--txt);font-size:12px">${_tsEsc(cross)}</pre>` : "";
+    if (!res.ok) {
+      $("draftStatus").textContent = "错误";
+      $("cfOut").innerHTML = crossBox + _tsEsc(String(r.error || res.status));
+      return;
+    }
     closeDraftModal();
-    $("cfOut").innerHTML = `✅ 已生成 ${downloadLink(r.output)}`;
-    $("cfPlanStatus").textContent = "完成";
+    $("cfOut").innerHTML = crossBox + `✅ 已生成 ${downloadLink(r.output)}`;
+    $("cfPlanStatus").textContent = cross ? "完成（有跨分类提示）" : "完成";
   } catch (e) { $("draftStatus").textContent = "失败"; $("cfOut").textContent = String(e); }
   finally { $("draftRun").disabled = false; }
 });
 
+// 规模预检（2026-10-10）：点①之前就能看到规模档位，不用等 AI 跑完才发现是长表。
+// text 模式在前端直接数行（无需后端）；xlsx 模式交给后端 /api/template/scale 解析。
+$("tsContent").addEventListener("input", _tsScalePeek);
+$("tsRequire").addEventListener("change", _tsScalePeek);
+
+async function _tsScalePeek() {
+  const kind = document.querySelector('input[name=tskind]:checked').value;
+  if (kind === "text") {
+    const txt = $("tsContent").value || "";
+    if (!txt.trim()) { _tsRenderScale(null); return; }
+    const lines = txt.split(/\r?\n/);
+    let cmds = 0, notes = 0;
+    for (const raw of lines) {
+      const s = raw.trim();
+      if (!s) continue;
+      if (s.split("##")[0].trim().startsWith("!")) notes++; else cmds++;
+    }
+    _tsRenderScale(_tsScaleLocal(cmds, lines.filter(l => l.trim()).length, notes));
+    return;
+  }
+  const f = $("tsFile").files[0];
+  if (!f) { _tsRenderScale(null); _tsXlsxDoctor(null); return; }
+  try {
+    const b64 = _tsB64(await f.arrayBuffer());
+    const res = await fetch("/api/template/scale", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "xlsx", file_b64: b64 }) });
+    const d = await res.json();
+    _tsRenderScale(res.ok ? d : null);
+    // 【导入须知】体检结果：告诉用户「你这份表」会不会踩坑（比静态说明更准）
+    _tsXlsxDoctor(res.ok ? (d && d.xlsx_check) : null);
+  } catch (e) { _tsRenderScale(null); _tsXlsxDoctor(null); }
+}
+
+function _tsScaleLocal(cmd, total, notes) {
+  // 阈值必须与后端 template_studio/scale_hint.py 一致（ok≤240 / large≤500）
+  let level = "ok", label = "规模正常", advice = "", hint = "";
+  if (cmd > 500) { level = "huge"; label = "很大";
+    advice = "这份材料有 " + cmd + " 条命令，单次导入极可能被截断（输出超长后，后半段命令会静默消失）。建议先按段落拆成多张表，每张不超过 150 条命令，再分别入库。";
+    hint = "共 " + cmd + " 条命令，材料很大，建议务必分段导入。";
+  } else if (cmd > 240) { level = "large"; label = "偏大";
+    advice = "这份材料有 " + cmd + " 条命令，已超过单次输出的稳定区间。重复点「重新生成」通常没用——建议按段落分成每张 100~150 条命令分别导入。";
+    hint = "共 " + cmd + " 条命令，材料偏大，建议分段导入。";
+  } else { hint = "共 " + cmd + " 条命令，规模正常（官方模板中最大的一条为 238 条）。"; }
+  return { cmd_lines: cmd, total_lines: total, note_lines: notes,
+           level: level, label: label, advice: advice, hint: hint };
+}
+
 // ---------- ③ 模板工作室（新建模板 / AI 包装 → 检查 → 入库） ----------
 let TS_VERIFIED = null;  // 最近一次校验结果；入库依赖它
+let TS_SEAM_OK = false;  // 命令保真校验（seam_guard）通过；正文被手改后作废
+let TS_SEAM_SIG = "";    // 通过时的正文字签名，用于判定「正文是否被改过」
+let TS_ORIG_CMD = "";    // 本次草稿的命令原文（用于 ②校验时对改后正文复检）
+let TS_SEAM_TRIED = false; // 用户是否点过②校验（据此区分「未校验」与「校验未过」）
+let TS_XS_TOKEN = "";    // 【格式保真·2026-10-11】①导入 xlsx 时后端下发的样式暂存凭证；
+                         // ③入库时带回以还原源表字体/底色/边框/列宽。纯文本导入为空串。
+
+// 首次拦截时的说明（2026-10-10）：只在**真正被拦那次**自动展开，
+// 不预先打扰；点「知道了」记入 localStorage，之后不再出现。
+const TS_SEAM_INTRO_KEY = "cf_seam_intro_seen";
+function _tsSeamIntroShow() {
+  const w = $("tsSeamIntro");
+  if (w) w.style.display = "";
+}
+function _tsSeamIntroHide() {
+  const w = $("tsSeamIntro");
+  if (w) w.style.display = "none";
+  try { localStorage.setItem(TS_SEAM_INTRO_KEY, "1"); } catch (e) {}
+}
+function _tsSeamIntroFresh() {
+  let seen = "";
+  try { seen = localStorage.getItem(TS_SEAM_INTRO_KEY) || ""; } catch (e) {}
+  return !seen;
+}
+// 「知道了，不再显示」——与其他绑定一致，直接绑（本脚本在 </body> 前执行，元素已存在）
+(function () {
+  const a = document.getElementById("tsSeamHide");
+  if (a) a.addEventListener("click", e => { e.preventDefault(); _tsSeamIntroHide(); });
+})();
+
+function _tsSeamSig() { return ($("tsBody").value || "").replace(/\r/g, ""); }
+
+// ===== 模板工作室子页签（2026-10-10）=====
+// 背景：④ 模板工作室占全页 73%（1529 行），而日常用的 ③配置生成只占 3%（63 行）。
+// ④ 里混着「客户管理 / 模板管理」两块低频功能（几个月碰一次），与高频的「新建模板」
+// 平铺在一页。这里只做**显示切换**，两块 DOM 与其 JS 绑定一律不动 —— 功能零影响。
+const STUDIO_PANES = ["paneNew", "paneCustomer", "paneMgmt"];
+function studioPane(name) {
+  STUDIO_PANES.forEach(p => { const el = $(p); if (el) el.style.display = (p === name) ? "" : "none"; });
+  const hint = $("stabHint");
+  if (hint) hint.style.display = (name === "paneNew") ? "" : "none";
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const bar = $("studioTabs");
+  if (!bar) return;
+  bar.addEventListener("click", e => {
+    const b = e.target.closest(".stab");
+    if (!b) return;
+    bar.querySelectorAll(".stab").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    studioPane(b.dataset.p);
+  });
+  // 初始化：面板显隐**由 JS 单点决定**，不依赖 HTML 里三处硬编码的 display:none
+  // （万一将来加面板漏了 style，初始状态也不会错乱）
+  studioPane("paneNew");
+});
+
+// 规模提示条（2026-10-10）：导入的常常是一整台交换机的配置模板，几百行很常见。
+// 规模过大 → 输出被截断（工程问题，重试无用，需分批）；规模正常 → 才是 AI 改写（内容问题）。
+// 两者处理方式完全不同，所以必须在页面上分开说明，不要混成一句「不一致」。
+function _tsRenderScale(scale) {
+  if (!scale) { $("tsScaleWrap").style.display = "none"; return; }
+  const lv = scale.level || "ok";
+  $("tsScaleWrap").style.display = "";
+  const el = $("tsScale");
+  el.className = "tsScale lv-" + lv;
+  let html = '<div class="tsS-head"><span class="tsS-badge">' + _tsEsc(scale.label) + "</span>"
+    + '<span class="tsS-num">共 ' + scale.cmd_lines + " 条命令 / " + scale.total_lines + " 行"
+    + (scale.note_lines ? "（其中说明行 " + scale.note_lines + " 条）" : "") + "</span></div>";
+  if (scale.advice) html += '<div class="tsS-body">' + _tsEsc(scale.advice) + "</div>";
+  el.innerHTML = html;
+}
 
 function _tsEsc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
 function _tsB64(buf) {
@@ -1362,13 +1990,33 @@ $("tsGenerate").addEventListener("click", async () => {
   try {
     const res = await fetch("/api/template/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const d = await res.json();
-    if (!res.ok) { $("tsStatus").textContent = "错误"; $("tsBody").value = ""; alert(d && d.error ? d.error : JSON.stringify(d)); return; }
+    // 规模提示条：成功显示档位+建议；被拦截时也显示（让用户判断长度是不是诱因）
+    _tsRenderScale(d && d.scale);
+    if (!res.ok) {
+      $("tsStatus").textContent = "错误"; $("tsBody").value = "";
+      // 被保真校验拦下（而非其他错误）时，若是首次，自动展开说明
+      if (d && d.seam && _tsSeamIntroFresh()) _tsSeamIntroShow();
+      alert(d && d.error ? d.error : JSON.stringify(d)); return;
+    }
     $("tsBody").value = (d.draft && d.draft.body) || "";
     TS_VERIFIED = null;
+    // 【格式保真·2026-10-11】后端在①导入 xlsx 时把源表样式（字体/底色/边框/列宽）
+    // 暂存在服务端并下发 xs_token，③入库时凭它还原。存下来、commit 时带上即可；
+    // 纯文本导入时为空串，不影响原有流程。
+    TS_XS_TOKEN = (d && d.xs_token) || "";
+    // 保真校验通过标记：commit 时回传后端做防绕过（2026-10-10）。
+    // 正文一旦被手工改动，这个标记立即作废——正文与当初校验过的不是一回事了。
+    TS_SEAM_OK = !!(d.draft && d.draft.seam_checked);
+    TS_SEAM_SIG = TS_SEAM_OK ? _tsSeamSig() : "";
+    TS_SEAM_TRIED = false;
+    // 保存命令原文：②校验时连同正文一起回后端做保真复检（手改正文也能查）
+    TS_ORIG_CMD = (d.draft && d.draft.orig_content) || "";
     $("tsVerifyOut").innerHTML = ""; $("tsCommitOut").textContent = "";
     $("tsCommit2").checked = false; _tsSyncCommit();
     _tsRenderPreview(); _tsRenderUncovered(d.draft && d.draft.uncovered);
-    $("tsStatus").textContent = "已出草稿（未落盘）→ 请检查后点「② 运行校验」";
+    $("tsStatus").textContent = TS_SEAM_OK
+      ? "已出草稿（命令保真校验通过）→ 请检查后点「② 运行校验」"
+      : "已出草稿（未过命令保真校验）→ 请检查后点「② 运行校验」";
   } catch (e) { $("tsStatus").textContent = "失败"; $("tsBody").value = String(e); }
   finally { $("tsGenerate").disabled = false; }
 });
@@ -1379,10 +2027,18 @@ $("tsVerify").addEventListener("click", async () => {
   if (!body.trim()) { $("tsStatus").textContent = "正文为空，请先生成或手填"; return; }
   $("tsVerify").disabled = true; $("tsStatus").textContent = "校验中…";
   try {
-    const res = await fetch("/api/template/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) });
+    const res = await fetch("/api/template/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body, orig_content: TS_ORIG_CMD }) });
     const d = await res.json();
     if (!res.ok) { $("tsStatus").textContent = "错误"; $("tsVerifyOut").textContent = JSON.stringify(d, null, 2); return; }
     TS_VERIFIED = d;
+    // 复检通过（含保真校验）→ 允许入库，并刷新签名使当前正文成为可信基线。
+    // 只有「没有原文可比」时才算保真通过。
+    const seamOk = d.seam ? !!d.seam.ok : true;
+    TS_SEAM_TRIED = true;
+    // 复检发现保真不过 → 首次自动展开说明
+    if (!seamOk && _tsSeamIntroFresh()) _tsSeamIntroShow();
+    if (d.passed && seamOk) { TS_SEAM_OK = true; TS_SEAM_SIG = _tsSeamSig(); }
+    else { TS_SEAM_OK = false; TS_SEAM_SIG = ""; }
     _tsRenderVerify(d, "tsVerifyOut", "tsStatus",
       d.passed ? "校验通过（仍需勾「我已检查」才能入库）" : "存在阻塞项，修正后再校验");
     _tsSyncCommit();
@@ -1397,14 +2053,29 @@ $("tsCommit").addEventListener("click", async () => {
   if (!$("tsCommit2").checked) { $("tsStatus").textContent = "请勾选二次确认（确认写入模板库）"; return; }
   const body = $("tsBody").value;
   if (!body.trim()) { $("tsStatus").textContent = "正文为空"; return; }
+  // 正文在校验之后又被手改 -> 先前的保真结论只对当时那份正文有效，必须复检。
+  if (TS_SEAM_SIG && _tsSeamSig() !== TS_SEAM_SIG) {
+    $("tsStatus").textContent = "正文在校验后被修改过，请重新点②校验";
+    alert("模板正文在②校验之后被修改过了。\n"
+      + "校验结论只对当时那份正文有效。请重新点「② 运行校验」，或点「① 重新生成」"
+      + "让 AI 重新包装，确认无误后再入库。");
+    return;
+  }
   $("tsCommit").disabled = true; $("tsStatus").textContent = "入库中…";
   try {
     const res = await fetch("/api/template/commit", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body, category: $("tsCategory").value.trim(), name: $("tsName").value.trim(), label: $("tsLabel").value.trim(), client: ($("tsClient") && $("tsClient").value || "").trim() }) });
+      body: JSON.stringify({ body, category: $("tsCategory").value.trim(), name: $("tsName").value.trim(), label: $("tsLabel").value.trim(), client: ($("tsClient") && $("tsClient").value || "").trim(), seam_ok: TS_SEAM_OK, seam_bad: !TS_SEAM_OK && TS_SEAM_TRIED, xs_token: TS_XS_TOKEN }) });
     const d = await res.json();
     if (!res.ok) { $("tsStatus").textContent = "入库失败"; $("tsCommitOut").textContent = JSON.stringify(d, null, 2); return; }
-    $("tsCommitOut").textContent = (d.report || "") + ((d.written && d.written.length) ? "\n\n已写入:\n" + d.written.join("\n") : "");
-    $("tsStatus").textContent = "入库完成 ✓";
+    // 【格式保真·2026-10-11】入库后清掉 token（后端一次性消费，重用会拿不到样式）；
+    // style_note 非空 = 有行没匹配到源表样式，如实告知，不静默吞掉。
+    const usedStyle = !!TS_XS_TOKEN;
+    TS_XS_TOKEN = "";
+    let extra = "";
+    if (usedStyle && !d.style_note) extra = "\n\n✓ 已保留源表格式（字体/底色/边框/列宽）";
+    else if (d.style_note) extra = "\n\n⚠️ " + d.style_note;
+    $("tsCommitOut").textContent = (d.report || "") + ((d.written && d.written.length) ? "\n\n已写入:\n" + d.written.join("\n") : "") + extra;
+    $("tsStatus").textContent = usedStyle && d.style_note ? "入库完成（有样式未匹配）" : "入库完成 ✓";
   } catch (e) { $("tsStatus").textContent = "入库失败"; $("tsCommitOut").textContent = String(e); }
   finally { $("tsCommit").disabled = false; }
 });
@@ -1433,68 +2104,78 @@ function _mgClear() {
   $("mgVerifyOut").innerHTML = ""; $("mgOut").textContent = "";
   _mgSyncSave();
 }
-function _mgOpt(group, t, editable) {
-  const o = document.createElement("option");
-  o.textContent = `${t.category}/${t.name} · ${t.label || ""} · ${t.version || ""}`
-    + (t.client ? ` · @${t.client}` : (editable ? " · 未分组" : "")) + (editable ? "" : "（只读）");
-  if (editable) {
-    o.value = JSON.stringify({ category: t.category, name: t.name, label: t.label, version: t.version });
-  } else {
-    o.disabled = true;  // 官方库只读基准：禁选，避免用户选上去却点不动
-    o.value = "";
-  }
-  group.appendChild(o);
-  return o;
-}
+// ===== 编辑已有模板（mgSel）=====
+// 分组：官方库（只读，禁选但可见 + 标签明示）/ 本地库（可改可删）。
+let MG_TSEL = null;
+
+function _mgItemKey(t){ return JSON.stringify({ category: t.category, name: t.name, label: t.label, version: t.version }); }
+
 async function mgRefresh() {
   try {
     const _c = mgClientValue();
     const res = await fetch("/api/template/entries" + (_c ? "?client=" + encodeURIComponent(_c) : ""));
     const d = await res.json();
     if (!res.ok) throw new Error(d.error || ("HTTP " + res.status));
-    const sel = $("mgSel");
-    sel.innerHTML = "";
-    const g1 = document.createElement("optgroup");
-    g1.label = `官方库 CG 自带（${(d.official || []).length} 个 · 只读）`;
-    (d.official || []).forEach(t => _mgOpt(g1, t, false));
+
+    const official = (d.official || []).map(t => ({
+      key: "off:" + t.category + "/" + t.name,
+      label: (t.label || t.name) + (t.client ? ` · @${t.client}` : ""),
+      code: t.name + " @ " + (t.version || ""),
+      readOnly: true, cust: !!t.client, badge: "官方 · 只读",
+    }));
+    const local = (d.local || []).map(t => ({
+      key: "loc:" + _mgItemKey(t),
+      label: (t.label || t.name) + (t.client ? ` · @${t.client}` : ""),
+      code: t.name + " @ " + (t.version || ""),
+      readOnly: false, cust: !!t.client,
+      badge: t.client ? (t.override ? "已覆盖官方" : "客户专属") : "可改可删",
+    }));
+    const items = official.concat(local);
     const _c2 = mgClientValue();
-    const g2 = document.createElement("optgroup");
-    g2.label = _c2
-      ? `本地库 · 客户「${_c2}」+ 未分组（${(d.local || []).length} 个 · 可改可删）`
-      : `本地库 工作室（${(d.local || []).length} 个 · 可改可删）`;
-    (d.local || []).forEach(t => _mgOpt(g2, t, true));
-    sel.appendChild(g1); sel.appendChild(g2);
-    const _sl = document.getElementById("statLocal"); if (_sl) _sl.textContent = String(g2.children.length);
+
+    if (!MG_TSEL) {
+      MG_TSEL = TSel.create($("mgSel"), {
+        mode: "single",
+        placeholder: "搜索模板（中文名 / 英文名）",
+        extraToggle: '<label><input type="checkbox">仅本地库</label>',
+        groups: [
+          { id: "off", label: "官方库 CG 自带（只读基准 · 不可编辑）", open: true,
+            test: it => it.key.startsWith("off:") },
+          { id: "loc", label: _c2 ? `本地库 · 客户「${_c2}」+ 未分组（可改可删）` : "本地库 工作室（可改可删）",
+            open: true, test: it => it.key.startsWith("loc:") },
+        ],
+        onPick(key, it) {
+          if (it.key.startsWith("off:")) {
+            $("mgOut").textContent = "「" + it.label + "」来自官方库（只读基准），要改请先复制到客户下。";
+            _mgClear();
+            return;
+          }
+          mgPick(JSON.parse(it.key.slice(4)));
+        },
+      });
+    }
+    TSel.setItems(MG_TSEL, items);
+
+    const _sl = document.getElementById("statLocal");
+    if (_sl) _sl.textContent = String(local.length);
+
     // 记住刷新前的选中项，刷新后按 category+name 恢复（客户归属变了也不影响定位）
     const _prev = MG_CTX ? { category: MG_CTX.category, name: MG_CTX.name } : null;
     _mgClear();
     if (_prev) {
-      const opt = [...sel.options].find(o => {
-        if (!o.value) return false;
-        try {
-          const j = JSON.parse(o.value);
-          return j.category === _prev.category && j.name === _prev.name;
-        } catch (e) { return false; }
-      });
-      if (opt) {
-        sel.value = opt.value;
-        // 直接回填正文：select.value 被程序改写不会触发 change，用户"再点一次同样的项"
-        // 也因值未变而不触发 → 之前正是因此正文一直空白
-        await mgPick();
+      const hit = local.find(t => t.category === _prev.category && t.name === _prev.name);
+      if (hit) {
+        TSel.setPicked(MG_TSEL, ["loc:" + _mgItemKey(hit)]);
+        // 直接回填正文：程序改写选中态不会触发 click，故显式调用
+        await mgPick(JSON.parse(_mgItemKey(hit)));
       }
     }
   } catch (e) {
     $("mgOut").textContent = "读取模板库失败：" + e;
   }
 }
-async function mgPick() {
-  const raw = $("mgSel").value;
-  if (!raw) {  // 选中的是官方库（禁选项时走不到，留兜底提示）
-    _mgClear();
-    $("mgOut").textContent = "官方库是只读基准，只能看；要改就选本地库那组。";
-    return;
-  }
-  const t = JSON.parse(raw);
+async function mgPick(t) {
+  if (!t) { _mgClear(); $("mgOut").textContent = "请先选择一个本地库模板。"; return; }
   _mgFill(t);
   _mgSyncSave();
   try {
@@ -1506,9 +2187,8 @@ async function mgPick() {
     $("mgLabel").value = d.label || "";
   } catch (e) { $("mgOut").textContent = "读取正文失败：" + e; }
 }
-$("mgSel").addEventListener("change", mgPick);
-// 兜底：选中项没变时 change 不会触发，点同一个已选项也要能重新加载正文
-$("mgSel").addEventListener("click", () => { if ($("mgSel").value) mgPick(); });
+// 注：mgSel 已从原生 <select> 换成 TSel 组件，行点击由组件内部处理
+// （含「再点一次已选项 = 取消选中」的反馈），旧的 change/click 绑定随之移除。
 $("mgCheck").addEventListener("change", _mgSyncSave);
 
 // 校验改动（与管理区保存共用 /api/template/verify）
@@ -1548,9 +2228,13 @@ $("mgSave").addEventListener("click", async () => {
     $("mgOut").textContent = (d.report || "") +
       (d.changed ? `\n→ 已存为新版本 ${d.version}（旧版本保留，随时能回退）` : "\n→ 正文与当前版本一致，没有产生新版本");
     await mgRefresh();
-    const opt = [...$("mgSel").options].find(o => o.value &&
-      JSON.parse(o.value).category === ctx.category && JSON.parse(o.value).name === ctx.name);
-    if (opt) { $("mgSel").value = opt.value; await mgPick(); }
+    // 刷新后恢复选中（mgRefresh 内部已按 category+name 恢复选中并回填正文）
+    if (MG_TSEL) {
+      const ks = TSel.getPicked(MG_TSEL).filter(k => k.startsWith("loc:"));
+      const hit = ks.map(k => { try { return JSON.parse(k.slice(4)); } catch (e) { return null; } })
+                    .find(t => t && t.category === ctx.category && t.name === ctx.name);
+      if (hit) { TSel.setPicked(MG_TSEL, ["loc:" + _mgItemKey(hit)]); await mgPick(hit); }
+    }
   } catch (e) { $("mgOut").textContent = "保存失败：" + e; }
   finally { _mgSyncSave(); }
 });
@@ -1583,12 +2267,18 @@ $("mgDelete").addEventListener("click", async () => {
 (function(){
   const addBtn = $("mgClientAdd");
   if (addBtn) addBtn.addEventListener("click", mgAddClient);
+  const delBtn = $("mgClientDel");
+  if (delBtn) delBtn.addEventListener("click", mgDelClient);
   const forkBtn = $("mgFork");
   if (forkBtn) forkBtn.addEventListener("click", mgForkTemplate);
-  const forkSel = $("mgForkSel");
-  if (forkSel) forkSel.addEventListener("change", mgForkSync);
   const csel = $("mgClientSel");
-  if (csel) csel.addEventListener("change", () => { mgForkSync(); mgRefresh(); });
+  if (csel) csel.addEventListener("change", () => {
+    mgDelClientReset();          // 切换客户即解除「再点一次」的待确认态，避免误删错客户
+    mgForkSync(); mgRefresh();
+    // 「已复制」清单随客户变化，需重载（选中项清空——来源与目标客户不再对应）
+    MG_FORK_PICKS = [];
+    mgLoadOfficialForFork();
+  });
   const asNew = $("mgForkAsNew");
   if (asNew) asNew.addEventListener("click", () => mgForkTemplate(true));
   const cancel = $("mgForkCancel");

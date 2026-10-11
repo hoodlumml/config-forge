@@ -49,6 +49,11 @@ class LLMProvider:
                 payload["format"] = "json"
             else:
                 payload["response_format"] = {"type": "json_object"}
+        # 结构化解析（json_mode）需确定性输出：本地模型默认 temperature≈0.8，
+        # 会导致同一输入每次结果不同（导入模板时好时坏）。强制 temperature=0；
+        # 若调用方显式传了 temperature，以调用方为准（必须放在 update(kwargs) 之前才生效）。
+        if json_mode and "temperature" not in kwargs:
+            payload["temperature"] = 0
         payload.update(kwargs)
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url, data=data, method="POST")
@@ -64,7 +69,13 @@ class LLMProvider:
                 body = e.read().decode("utf-8", "replace")[:300]
             except Exception:
                 body = ""
-            raise RuntimeError(f"HTTP {e.code}: {body or e.reason}") from None
+            self._last_error = "HTTP %s: %s" % (e.code, body or e.reason)
+            raise RuntimeError(self._last_error) from None
+        except Exception as e:
+            # 连接类错误（端口未监听/超时/密钥无效）也要留痕，供回退提示用
+            self._last_error = "%s: %s" % (type(e).__name__, e)
+            raise
+        self._last_error = None
         return out["choices"][0]["message"]["content"]
 
     def healthy(self):
@@ -73,6 +84,42 @@ class LLMProvider:
             return True
         except Exception:
             return False
+
+    def last_error_summary(self):
+        """一句话说明上次为什么失败（用于把「都试过了」讲清楚）。"""
+        e = getattr(self, "_last_error", None)
+        if not e:
+            return "未记录"
+        s = str(e).strip().replace("\n", " ")
+        if "10061" in s or "actively refused" in s or "拒绝" in s:
+            return "服务未启动 / 端口未监听"
+        if "10060" in s or "timed out" in s.lower() or "超时" in s:
+            return "连接超时"
+        if "401" in s or "403" in s or "api_key" in s.lower() or "unauthorized" in s.lower():
+            return "密钥无效或无权限"
+        return s[:60]
+
+
+def _is_simple(exc):
+    """错误对象能否安全地按原类型重建（自定义异常可能构造签名不同，保守处理）。"""
+    return isinstance(exc, (RuntimeError, ValueError, OSError, PermissionError))
+
+
+def _fallback_hint(provider, tried):
+    """全部 provider 都失败时，把「还试过谁、为什么不行」讲清楚。
+
+    只说「连接被拒绝」而不说「本地服务没启动」，用户无法判断该重启服务还是改配置。
+    """
+    if not tried:
+        return ""
+    lines = ["\n\n（已依次尝试过以下模型，全部失败："]
+    for p in tried:
+        kind = "云端" if getattr(p, "kind", "local") == "cloud" else "本地"
+        lines.append("  · %s（%s %s）：%s" % (p.name, kind, p.base_url, p.last_error_summary()))
+    lines.append("）")
+    lines.append("\n排查：若为本地模型，请确认其服务已启动（如 dsh 默认 http://localhost:8080、"
+                 "ollama 默认 http://localhost:11434）。")
+    return "".join(lines)
 
 
 def build_orchestrator(cfg):
@@ -148,28 +195,46 @@ class Orchestrator:
         return chosen
 
     def complete(self, mode, manual_provider, message, route_text=None, json_mode=False):
-        """选择并发起调用；失败时本地互备回退。
+        """选择并发起调用；失败时按「同类互备 → 另一类」顺序回退。
 
-        - auto：云端失败 → 逐个尝试本地（受 fallback_to_local 开关控制）
-        - manual：选中的本地失败 → 逐个尝试其他本地（绝不碰云端）
-        route_text：路由判定用的文本（auto 关键词规则），缺省用 message 本身。
-        json_mode：规划类调用传 True，强制模型输出合法 JSON 对象（见 chat()）。
+        - auto：首选按规则路由；失败后依次尝试 **其他 provider（同类优先，云端→本地→云端）**
+        - manual：选中的本地失败 → 只在**本地之间**互备，**绝不碰云端**
+
+        ⚠️ 2026-10-11 修正：原先只在「云端失败」时回退到本地，方向是单向的。
+        于是当 auto 规则把涉密文本路由到 local_dsh、而该 dsh 服务没启动时，
+        两个本地都连不上 → 直接把 WinError 10061 抛给用户，云端明明是通的却用不上。
+        实测报错：`HTTP 502: upstream connect failed: 由于目标计算机积极拒绝，无法连接。
+        (os error 10061)`。现改为**先试同类、再跨类兜底**。
         """
         provider = self.decide(mode, manual_provider, route_text or message)
         try:
             return provider, provider.chat([{"role": "user", "content": message}], json_mode=json_mode)
         except Exception as first_err:
-            if mode == "auto" and not self.fallback_to_local:
-                raise
-            others = [p for p in self.providers.values()
-                      if p.kind == "local" and p is not provider]
+            if mode == "manual":
+                # 手动模式铁律：只在本地之间互备，绝不自动改用云端
+                others = [p for p in self.providers.values()
+                          if p.kind == "local" and p is not provider]
+                last = first_err
+                for p in others:
+                    try:
+                        return p, p.chat([{"role": "user", "content": message}], json_mode=json_mode)
+                    except Exception as e:
+                        last = e
+                raise last
+            # auto 模式：按「先同类、再另一类」兜底，最终都会尝试到云端
+            locals_ = [p for p in self.providers.values() if p.kind == "local" and p is not provider]
+            clouds_ = [p for p in self.providers.values() if p.kind == "cloud" and p is not provider]
+            order = (locals_ if provider.kind == "local" else clouds_) + \
+                    (clouds_ if provider.kind == "local" else locals_)
             last = first_err
-            for p in others:
+            for p in order:
                 try:
                     return p, p.chat([{"role": "user", "content": message}], json_mode=json_mode)
                 except Exception as e:
                     last = e
-            raise last
+            # 全都失败：把**首选**的错误抛出（更贴近用户预期），并附上后续尝试的失败原因
+            hint = _fallback_hint(provider, order)
+            raise type(first_err)(str(first_err) + hint) if _is_simple(first_err) else first_err
 
     def health(self):
         out = {}

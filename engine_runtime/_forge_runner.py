@@ -12,7 +12,6 @@ import re
 import sys
 from pathlib import Path
 
-# 自包含包：引擎文件与本脚本同目录，直接从自身目录加载（不再依赖外部 config-generator）
 CFG = Path(__file__).resolve().parent
 sys.path.insert(0, str(CFG))
 
@@ -92,7 +91,7 @@ def _normalize_template_data(data):
     """把 per-template data 归一成引擎期望的形态。
 
     引擎 render_nodes 期望：
-      data["repeats"] = { 节点id: [变量dict, ...] }
+      data["repeats"] = { 节点id: [变量dict, ...] }   （每个变量dict 直接是被合并的变量）
       data["choices"] = { 节点id: 选中的option名 }
     但 LLM/填表流可能吐出多种非规范形态，这里尽量兼容：
       - data 套了一层多余键名（如按 section 命名：
@@ -152,20 +151,107 @@ def _normalize_template_data(data):
     return data
 
 
+def _local_library_dir():
+    """客户专属模板所在的本地库目录（app.py 的 template_studio/library）。
+
+    引擎侧（CG library）只认官方库；客户专属模板存在 app.py 的本地库里，
+    两边索引不通用，需在这里按客户维度补查。
+
+    ⚠️ 本函数在两种包里位于**不同深度与不同层级关系**，故**双向探测**：
+      - 主线   llm-orchestrator/skills/_forge_runner.py
+               → 往上 2 级是 orchestrator 根，`template_studio/library` 在那层
+      - 分发包 config-forge-portable/engine_runtime/_forge_runner.py
+               → 上一级是包根，但 `template_studio` 挂在**下一层的 orchestrator/** 里，
+                 **只往上找是找不到的**（2026-10-11 同事包报 NoneType.strip 的真因：
+                 `_local_library_dir()` 返回 None → 找不到客户模板 → 渲染崩）
+
+    故每一层除了「自身 /template_studio/library」，还试「自身 /orchestrator/template_studio/library」。
+    两侧用同一份实现，不靠"主线能用就以为包也能用"。
+    """
+    here = Path(__file__).resolve()
+    for up in (here.parent, *here.parents):
+        for cand in (up / "template_studio" / "library",
+                     up / "orchestrator" / "template_studio" / "library"):
+            if cand.is_dir():
+                return cand
+    return None
+
+
+def _load_local_index():
+    """读本地库 index.json（不依赖 app.py，避免循环导入）。"""
+    d = _local_library_dir()
+    if not d:
+        return None, None
+    ip = d / "index.json"
+    if not ip.exists():
+        return None, None
+    try:
+        idx = json.loads(ip.read_text(encoding="utf-8"))
+    except Exception:
+        return None, None
+    return idx, d
+
+
+def _find_local_entry(category, name, client):
+    """在本地库里找 (category, name, client) 条目。
+
+    客户维度必须参与匹配：本地库允许「同一 (category,name) 存在多个客户版本」，
+    只按 (category,name) 会把「Customer1 已有」误当成「Customer2 已有」。
+    client 为空（未限定客户）时，取该 name 的任意一条（保持旧行为）。
+    """
+    idx, d = _load_local_index()
+    if not idx:
+        return None
+    cands = [e for e in idx.get("templates", [])
+             if e.get("category") == category and e.get("name") == name]
+    if not cands:
+        return None
+    if client:
+        for e in cands:
+            if str(e.get("client") or "").strip() == client:
+                return e, d
+        return None          # 该客户未 fork 过 -> 走官方底座
+    return cands[0], d
+
+
+def _load_local_schema(entry, root, version):
+    """从本地库读 schema，并补上 _dir（引擎 render 需要它拿 styles/images）。"""
+    versions = entry.get("versions") or []
+    ver = version or (versions[-1]["version"] if versions else None)
+    if not ver:
+        raise ValueError("本地模板没有版本信息")
+    d = root / entry["category"] / entry["name"] / ver
+    sp = d / "schema.json"
+    if not sp.exists():
+        raise FileNotFoundError("本地模板版本目录不存在: %s" % sp)
+    schema = json.loads(sp.read_text(encoding="utf-8"))
+    # 必须是 Path 对象：engine.load_template/load_styles 会做 `version_dir / "styles.json"`，
+    # 传 str 会抛 "unsupported operand type(s) for /: 'str' and 'str'"。
+    schema["_dir"] = d
+    return schema
+
+
 def build_devices(spec, idx):
     devices = []
     for d in spec.get("devices", []):
         category = d.get("category")
+        client = str(d.get("client") or "").strip()
         templates = []
         for t in d.get("templates", []):
-            entry = (
-                library.find_entry(idx, category, t["name"])
-                if category
-                else _find_by_name(idx, t["name"])
-            )
-            if entry is None:
-                raise ValueError(f"模板未找到: {t['name']} (category={category})")
-            schema = library.load_schema(entry, t.get("version"))
+            # 客户专属模板优先（客户版顶替官方底座）；未 fork 过则回落官方
+            local = _find_local_entry(category, t["name"], client)
+            if local is not None:
+                entry, root = local
+                schema = _load_local_schema(entry, root, t.get("version"))
+            else:
+                entry = (
+                    library.find_entry(idx, category, t["name"])
+                    if category
+                    else _find_by_name(idx, t["name"])
+                )
+                if entry is None:
+                    raise ValueError("模板未找到: %s (category=%s)" % (t["name"], category))
+                schema = library.load_schema(entry, t.get("version"))
             # data 来源兼容：优先"模板内 data"（LLM 有时把数据塞进 templates[i].data），
             # 否则取"设备级 data[模板名]"，再否则整体设备级 data，最后回退空壳。
             tpl_data = t.get("data")
