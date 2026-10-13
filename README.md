@@ -14,7 +14,7 @@
 
 > GitHub 不支持在 README 内直接播放视频（会剥离播放器标签）。点击下方链接前往 B 站观看介绍视频。
 
-- **[B 站 · config-forge（视频介绍）](https://www.bilibili.com/video/BV1wqHD6qEsv/)** —— 便携网络配置生成器：自然语言生成交换机配置，确定性渲染为多 sheet Excel，内置运行时无需安装。
+- **[B 站 · config-forge（视频介绍）](https://www.bilibili.com/video/BV1JGWA6NEgK/?vd_source=e28e00efd7fe7c77efa5055b5fea932c)** —— 便携网络配置生成器：自然语言生成交换机配置，确定性渲染为多 sheet Excel，内置运行时无需安装。
 
 ## 快速开始
 
